@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Boxes, Factory, Gauge, PackageCheck, Scale, ScrollText, TrendingUp, Truck } from "lucide-react";
+import { AlertTriangle, Boxes, Database, Factory, Gauge, PackageCheck, RotateCcw, Scale, ScrollText, TrendingUp, Truck, Trash2 } from "lucide-react";
 import { Badge } from "@/components/Badge";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { DashboardCard } from "@/components/DashboardCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatePanel } from "@/components/StatePanel";
-import { getDashboardSummary } from "@/lib/api";
-import { stakeholderLenses } from "@/lib/roles";
+import { Toast, type ToastState } from "@/components/Toast";
+import { clearSeedData, getDashboardSummary, loadSeedData } from "@/lib/api";
+import { canControlDemoData, stakeholderLenses } from "@/lib/roles";
 import { useDemoRole } from "@/lib/use-demo-role";
 import type { DashboardSummary } from "@/types";
 
@@ -24,12 +26,41 @@ export default function DashboardPage() {
   const role = useDemoRole();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState>(null);
+  const [demoAction, setDemoAction] = useState<"load" | "clear" | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     getDashboardSummary(role)
       .then(setSummary)
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Dashboard could not load."));
   }, [role]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timeout = window.setTimeout(() => setToast(null), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
+
+  async function refreshDashboard() {
+    const updated = await getDashboardSummary(role);
+    setSummary(updated);
+  }
+
+  async function handleDemoDataAction() {
+    if (!demoAction) return;
+    try {
+      setBusy(true);
+      const response = demoAction === "load" ? await loadSeedData() : await clearSeedData();
+      await refreshDashboard();
+      setToast({ tone: "success", message: response.message });
+      setDemoAction(null);
+    } catch (requestError) {
+      setToast({ tone: "error", message: requestError instanceof Error ? requestError.message : "Demo data action failed." });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (error) {
     return <StatePanel type="error" title="Dashboard unavailable" detail={error} />;
@@ -39,7 +70,7 @@ export default function DashboardPage() {
     return <StatePanel type="loading" title="Loading dashboard" detail="Preparing current traceability and compliance metrics." />;
   }
 
-  const maxFlow = Math.max(...Object.values(summary.flow));
+  const maxFlow = Math.max(...Object.values(summary.flow), 1);
   const lens = stakeholderLenses[role];
   const LensIcon = lens.icon;
   const intelligence = summary.compliance_intelligence;
@@ -59,6 +90,46 @@ export default function DashboardPage() {
           <DashboardCard key={metric.label} {...metric} icon={metricIcons[index]} />
         ))}
       </div>
+
+      <section className="mt-6 rounded-lg border border-ink-100 bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-emerald-50 text-compliance-green ring-1 ring-emerald-100">
+              <Database aria-hidden="true" className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-ink-900">Demo Data Controls</h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-500">
+                Load a complete seeded demo or clear operational records to manually run the flow from cane intake to receipt.
+              </p>
+            </div>
+          </div>
+          {canControlDemoData(role) ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setDemoAction("load")}
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-900 px-4 text-sm font-bold text-white transition hover:bg-compliance-green"
+              >
+                <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                Load Seed Data
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoAction("clear")}
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700 transition hover:bg-red-100"
+              >
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+                Clear Demo Data
+              </button>
+            </div>
+          ) : (
+            <Badge tone="neutral" className="max-w-full whitespace-normal text-left">
+              Switch to Mill Owner or Government Admin to reset demo data.
+            </Badge>
+          )}
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <section className="rounded-lg border border-ink-100 bg-white p-5 shadow-soft">
@@ -214,6 +285,23 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+
+      <ConfirmModal
+        open={Boolean(demoAction)}
+        title={demoAction === "clear" ? "Clear demo operational data?" : "Load seed data?"}
+        description={
+          demoAction === "clear"
+            ? "This will clear demo operational data only. Roles and system settings will remain."
+            : "This loads the stakeholder demo dataset. Existing seed data will not be duplicated."
+        }
+        confirmLabel={demoAction === "clear" ? "Clear Demo Data" : "Load Seed Data"}
+        reasonLabel={demoAction === "clear" ? "Confirmation reason" : "Note"}
+        requireReason={demoAction === "clear"}
+        busy={busy}
+        onCancel={() => setDemoAction(null)}
+        onConfirm={() => void handleDemoDataAction()}
+      />
+      <Toast toast={toast} />
     </>
   );
 }

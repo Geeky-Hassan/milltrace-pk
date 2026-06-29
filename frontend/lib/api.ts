@@ -139,6 +139,21 @@ export function getPackagingSerials() {
   return request<PackagingSerial[]>("/packaging-serials", packagingSerials);
 }
 
+export function generatePackagingSerials(payload: {
+  batch_id: string;
+  quantity: number;
+  bag_weight_kg: number;
+  packaging_line: string;
+  sku?: string;
+  start_sequence?: number | null;
+}) {
+  return request<PackagingSerial[]>("/packaging-serials/generate", [], {
+    method: "POST",
+    body: JSON.stringify(payload),
+    fallbackOnError: false,
+  });
+}
+
 export function getWarehouseReceipts() {
   return request<WarehouseReceipt[]>("/warehouse-receipts", warehouseReceipts);
 }
@@ -315,6 +330,20 @@ export function runDemoScenario(scenarioId: string) {
 export function resetDemoData() {
   return request<{ status: string; message: string }>("/demo/reset", { status: "OK", message: "Demo data reset." }, {
     method: "POST",
+    fallbackOnError: false,
+  });
+}
+
+export function loadSeedData() {
+  return request<{ status: string; message: string }>("/demo/seed", { status: "OK", message: "Seed data loaded." }, {
+    method: "POST",
+    fallbackOnError: false,
+  });
+}
+
+export function clearSeedData() {
+  return request<{ status: string; message: string }>("/demo/seed", { status: "OK", message: "Demo operational data cleared." }, {
+    method: "DELETE",
     fallbackOnError: false,
   });
 }

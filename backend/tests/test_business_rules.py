@@ -1,6 +1,7 @@
 import pytest
 
 from app.domain import DomainError, ExceptionType, SerialStatus
+from app.db.seed import clear_demo_operational_data, load_demo_seed_data
 from app.models import ExceptionAlert, PackagingSerial
 from app.schemas import (
     BuyerReceiptCreate,
@@ -147,7 +148,7 @@ def test_dispatch_updates_serials_and_flags_quantity_mismatch(db_session):
             buyer="Test Buyer",
             vehicle_number="TST-100",
             driver_name="Test Driver",
-            invoice_number=None,
+            invoice_number="INV-TEST-100",
             serial_numbers=[serial.serial_number],
             quantity=2,
             actor_user_id=3,
@@ -158,6 +159,26 @@ def test_dispatch_updates_serials_and_flags_quantity_mismatch(db_session):
     assert dispatch.dispatch_id.startswith("DSP-")
     assert serial.status == SerialStatus.DISPATCHED.value
     assert db_session.query(ExceptionAlert).filter(ExceptionAlert.type == ExceptionType.DISPATCH_QUANTITY_MISMATCH.value).first()
+
+
+def test_dispatch_without_invoice_is_blocked_and_flagged(db_session):
+    serial = db_session.query(PackagingSerial).filter(PackagingSerial.status == SerialStatus.WAREHOUSED.value).first()
+
+    with pytest.raises(DomainError, match="requires an invoice"):
+        DispatchService(db_session).create(
+            DispatchCreate(
+                buyer="No Invoice Buyer",
+                vehicle_number="NOINV-100",
+                driver_name="Test Driver",
+                invoice_number=None,
+                serial_numbers=[serial.serial_number],
+                quantity=1,
+                actor_user_id=3,
+            )
+        )
+
+    db_session.refresh(serial)
+    assert serial.status == SerialStatus.WAREHOUSED.value
     assert db_session.query(ExceptionAlert).filter(ExceptionAlert.type == ExceptionType.DISPATCH_WITHOUT_INVOICE.value).first()
 
 
@@ -297,3 +318,16 @@ def test_exception_resolution_requires_reason_and_audit_hash_chain(db_session):
     assert first.event_hash
     assert second.previous_event_hash == first.event_hash
     assert second.event_hash != first.event_hash
+
+
+def test_seed_clear_preserves_reference_data_and_load_is_idempotent(db_session):
+    deleted = clear_demo_operational_data(db_session)
+
+    assert deleted > 0
+    assert db_session.query(PackagingSerial).count() == 0
+    assert db_session.query(ExceptionAlert).count() == 0
+    assert load_demo_seed_data(db_session) is True
+    first_serial_count = db_session.query(PackagingSerial).count()
+    assert first_serial_count == 100
+    assert load_demo_seed_data(db_session) is False
+    assert db_session.query(PackagingSerial).count() == first_serial_count

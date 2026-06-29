@@ -8,12 +8,12 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatePanel } from "@/components/StatePanel";
 import { TableFilters } from "@/components/TableFilters";
 import { Toast, type ToastState } from "@/components/Toast";
-import { createWarehouseReceipt, getWarehouseReceipts } from "@/lib/api";
+import { createWarehouseReceipt, getPackagingSerials, getWarehouseReceipts } from "@/lib/api";
 import { formatDateTime, formatKg } from "@/lib/format";
 import { canManageWarehouse } from "@/lib/roles";
 import { matchesSearch, matchesValue, parseSerialList, uniqueOptions } from "@/lib/table";
 import { useDemoRole } from "@/lib/use-demo-role";
-import type { WarehouseReceipt } from "@/types";
+import type { PackagingSerial, WarehouseReceipt } from "@/types";
 
 const columns: DataTableColumn<WarehouseReceipt>[] = [
   { key: "serial_range", header: "Serial Range", cell: (row) => <span className="font-bold text-ink-900">{row.serial_range}</span> },
@@ -29,7 +29,8 @@ const columns: DataTableColumn<WarehouseReceipt>[] = [
 export default function WarehousePage() {
   const role = useDemoRole();
   const [rows, setRows] = useState<WarehouseReceipt[]>([]);
-  const [form, setForm] = useState({ serial_numbers: "", warehouse_location: "WH-A", sku: "SUGAR_50KG" });
+  const [availableSerials, setAvailableSerials] = useState<PackagingSerial[]>([]);
+  const [form, setForm] = useState({ serial_numbers: "", warehouse_location: "WH-A / Bay 03", sku: "SUGAR_50KG" });
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -37,8 +38,11 @@ export default function WarehousePage() {
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    getWarehouseReceipts()
-      .then(setRows)
+    Promise.all([getWarehouseReceipts(), getPackagingSerials()])
+      .then(([receiptRows, serialRows]) => {
+        setRows(receiptRows);
+        setAvailableSerials(serialRows.filter((serial) => serial.status.toUpperCase() === "ACTIVATED"));
+      })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Warehouse stock could not load."))
       .finally(() => setLoading(false));
   }, []);
@@ -72,7 +76,8 @@ export default function WarehousePage() {
         total_weight_kg: serials.length * 50,
       });
       setRows((current) => [created, ...current]);
-      setForm({ serial_numbers: "", warehouse_location: "WH-A", sku: "SUGAR_50KG" });
+      setAvailableSerials((current) => current.filter((serial) => !serials.includes(serial.serial_number)));
+      setForm({ serial_numbers: "", warehouse_location: "WH-A / Bay 03", sku: "SUGAR_50KG" });
       setToast({ tone: "success", message: "Warehouse receipt created and serial custody updated." });
     } catch (requestError) {
       setToast({ tone: "error", message: requestError instanceof Error ? requestError.message : "Warehouse receipt was rejected." });
@@ -120,14 +125,39 @@ export default function WarehousePage() {
             <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
               Warehouse location
               <select value={form.warehouse_location} onChange={(event) => setForm({ ...form, warehouse_location: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100">
-                <option>WH-A</option>
-                <option>WH-B</option>
+                <option>WH-A / Bay 03</option>
+                <option>WH-B / Bay 01</option>
               </select>
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
               SKU
               <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
             </label>
+          </div>
+          <div className="mt-4 rounded-lg bg-ink-50 p-4 ring-1 ring-ink-100">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase text-ink-500">Activated serials ready for warehouse</p>
+              {availableSerials.length ? (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, serial_numbers: availableSerials.slice(0, 5).map((serial) => serial.serial_number).join("\n") })}
+                  className="rounded-md border border-ink-200 bg-white px-3 py-2 text-xs font-bold text-ink-700 transition hover:bg-ink-50"
+                >
+                  Use first 5
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {availableSerials.length === 0 ? (
+                <span className="text-sm text-ink-500">No activated serials available. Activate serials on Packaging first.</span>
+              ) : (
+                availableSerials.slice(0, 8).map((serial) => (
+                  <Badge key={serial.serial_number} tone="warning" className="font-mono">
+                    {serial.serial_number}
+                  </Badge>
+                ))
+              )}
+            </div>
           </div>
         </form>
       ) : null}

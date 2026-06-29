@@ -23,7 +23,7 @@ export function PageHeader({
               <Icon aria-hidden="true" className="h-5 w-5" />
             </span>
           ) : null}
-          <h1 className="truncate text-2xl font-bold text-ink-900">{title}</h1>
+          <h1 className="min-w-0 break-words text-2xl font-bold text-ink-900">{title}</h1>
         </div>
         {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-500">{description}</p> : null}
       </div>
@@ -31,4 +31,3 @@ export function PageHeader({
     </div>
   );
 }
-

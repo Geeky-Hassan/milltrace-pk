@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.database import get_db
-from app.db.seed import reset_demo_database
+from app.db.seed import clear_demo_operational_data, load_demo_seed_data, reset_demo_database
 from app.domain import DomainError, ExceptionStatus
 from app.models import (
     BuyerReceipt,
@@ -206,6 +206,22 @@ def get_demo_scenario_result(scenario_id: str, db: Session = Depends(get_db)):
 def reset_demo_data(db: Session = Depends(get_db)):
     reset_demo_database(db)
     return DemoResetResponse(status="OK", message="Demo data reset to seeded state.")
+
+
+@api_router.post("/demo/seed", response_model=DemoResetResponse)
+def load_seed_demo_data(db: Session = Depends(get_db)):
+    created = load_demo_seed_data(db)
+    message = "Seed data loaded for the stakeholder demo." if created else "Seed data already exists; no duplicate records were created."
+    return DemoResetResponse(status="OK", message=message)
+
+
+@api_router.delete("/demo/seed", response_model=DemoResetResponse)
+def clear_seed_demo_data(db: Session = Depends(get_db)):
+    deleted_count = clear_demo_operational_data(db)
+    return DemoResetResponse(
+        status="OK",
+        message=f"Cleared {deleted_count} demo operational records. Roles, users, mill settings, and suppliers remain.",
+    )
 
 
 @api_router.get("/demo/gap-map", response_model=list[GapMapItem])

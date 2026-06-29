@@ -58,7 +58,7 @@ async def demo_auth_middleware(request: Request, call_next):
             return api_error("AUTH_INVALID", str(exc), 401)
         permission = permission_for_request(request.method, path)
         if not role_has_permission(principal.role, permission):
-            return api_error("FORBIDDEN", f"Role '{principal.role}' cannot perform '{permission}'.", 403)
+            return api_error("FORBIDDEN", "Your current role does not have permission to perform this action.", 403)
         request.state.user_id = principal.user_id
         request.state.role = principal.role
     return await call_next(request)

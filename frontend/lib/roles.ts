@@ -72,6 +72,12 @@ export const navItems: NavItem[] = [
     roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
   },
   {
+    href: "/flow",
+    label: "End-to-End Flow",
+    icon: GitBranch,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
     href: "/trace-batch",
     label: "Trace One Batch",
     icon: GitBranch,
@@ -93,31 +99,31 @@ export const navItems: NavItem[] = [
     href: "/dashboard/production",
     label: "Production",
     icon: Gauge,
-    roles: ["mill_owner", "mill_operator", "government_admin"],
+    roles: ["mill_owner", "mill_operator"],
   },
   {
     href: "/dashboard/packaging",
     label: "Packaging & Serials",
     icon: PackageCheck,
-    roles: ["mill_owner", "mill_operator", "fbr_officer", "government_admin", "auditor"],
+    roles: ["mill_owner", "mill_operator", "fbr_officer", "auditor"],
   },
   {
     href: "/dashboard/warehouse",
     label: "Warehouse",
     icon: Boxes,
-    roles: ["mill_owner", "warehouse_manager", "government_admin"],
+    roles: ["mill_owner", "warehouse_manager"],
   },
   {
     href: "/dashboard/dispatch",
     label: "Dispatch",
     icon: Truck,
-    roles: ["mill_owner", "warehouse_manager", "government_admin"],
+    roles: ["mill_owner", "warehouse_manager"],
   },
   {
     href: "/dashboard/buyer-receipts",
     label: "Buyer Receipts",
     icon: ReceiptText,
-    roles: ["warehouse_manager", "government_admin", "auditor"],
+    roles: ["mill_owner", "warehouse_manager"],
   },
   {
     href: "/dashboard/exceptions",
@@ -132,10 +138,10 @@ export const navItems: NavItem[] = [
     roles: ["mill_owner", "fbr_officer", "auditor"],
   },
   {
-    href: "/dashboard/roles",
-    label: "Roles",
+    href: "/roles",
+    label: "Roles & Responsibilities",
     icon: Users,
-    roles: ["government_admin", "auditor", "mill_owner"],
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
   },
   {
     href: "/dashboard/settings",
@@ -193,7 +199,7 @@ export function canAccess(role: RoleCode, href: string) {
 }
 
 export function canCreateCaneIntake(role: RoleCode) {
-  return role === "mill_operator" || role === "government_admin";
+  return role === "mill_operator";
 }
 
 export function canCreateProduction(role: RoleCode) {
@@ -214,4 +220,8 @@ export function canMarkExceptionInReview(role: RoleCode) {
 
 export function canResolveException(role: RoleCode) {
   return role === "auditor";
+}
+
+export function canControlDemoData(role: RoleCode) {
+  return role === "mill_owner" || role === "government_admin";
 }

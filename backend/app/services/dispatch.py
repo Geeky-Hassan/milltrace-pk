@@ -43,22 +43,24 @@ class DispatchService:
             self.db.commit()
             raise DomainError(f"Dispatch includes invalid serials: {', '.join(missing + invalid)}.")
 
-        if payload.quantity != len(payload.serial_numbers):
-            self.exceptions.create(
-                exception_type=ExceptionType.DISPATCH_QUANTITY_MISMATCH,
-                related_entity_type="Dispatch",
-                related_entity_id=payload.invoice_number or "NO_INVOICE",
-                description=f"Dispatch quantity {payload.quantity} does not match serial count {len(payload.serial_numbers)}.",
-                actor_user_id=payload.actor_user_id,
-                allow_duplicate=True,
-            )
-
         if not payload.invoice_number:
             self.exceptions.create(
                 exception_type=ExceptionType.DISPATCH_WITHOUT_INVOICE,
                 related_entity_type="Dispatch",
                 related_entity_id=payload.vehicle_number,
-                description="Dispatch was created without an invoice number.",
+                description="Dispatch was blocked because invoice evidence is missing.",
+                actor_user_id=payload.actor_user_id,
+                allow_duplicate=True,
+            )
+            self.db.commit()
+            raise DomainError("Dispatch requires an invoice number before stock can leave warehouse.")
+
+        if payload.quantity != len(payload.serial_numbers):
+            self.exceptions.create(
+                exception_type=ExceptionType.DISPATCH_QUANTITY_MISMATCH,
+                related_entity_type="Dispatch",
+                related_entity_id=payload.invoice_number,
+                description=f"Dispatch quantity {payload.quantity} does not match serial count {len(payload.serial_numbers)}.",
                 actor_user_id=payload.actor_user_id,
                 allow_duplicate=True,
             )

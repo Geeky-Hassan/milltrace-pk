@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.domain import ExceptionStatus, ExceptionType, SerialStatus
 from app.models import (
+    AuditLog,
     BuyerReceipt,
     CaneIntake,
-    AuditLog,
     DemoScenarioRun,
     Dispatch,
     ExceptionAlert,
@@ -25,59 +25,145 @@ from app.utils import serial_range, to_csv, utcnow
 
 
 ROLE_DEFINITIONS = [
-    ("mill_owner", "Mill Owner", "Business owner with production, stock, and exception visibility."),
-    ("mill_operator", "Mill Operator", "Creates cane intake and production batch records."),
-    ("warehouse_manager", "Warehouse Manager", "Manages stock receipts and dispatch movement."),
-    ("fbr_officer", "FBR Officer", "Views compliance dashboards and red flag exceptions."),
-    ("government_admin", "Government Admin", "Views high-level mill compliance across the network."),
-    ("auditor", "Auditor", "Reviews evidence logs and exception details."),
+    ("mill_owner", "Mill Owner", "Views business, production, stock, risk, and compliance status."),
+    ("mill_operator", "Mill Operator", "Creates cane intake, production batches, and serial activation evidence."),
+    ("warehouse_manager", "Warehouse Manager", "Receives activated serials into warehouse and creates dispatches."),
+    ("fbr_officer", "FBR Officer", "Reviews compliance dashboard, exceptions, serial lifecycle, and audit logs."),
+    ("government_admin", "Government Admin", "Views high-level compliance and policy-level monitoring."),
+    ("auditor", "Auditor", "Reviews evidence, audit logs, and exception resolution."),
+]
+
+USER_DEFINITIONS = [
+    ("mill_owner", "Ayesha Khan", "owner@mehrab.example", "Active"),
+    ("mill_operator", "Bilal Ahmed", "operator@mehrab.example", "Active"),
+    ("warehouse_manager", "Sara Malik", "warehouse@mehrab.example", "Active"),
+    ("fbr_officer", "Faisal Raza", "fbr@mehrab.example", "Active"),
+    ("government_admin", "Nadia Qureshi", "admin@gov.example", "Active"),
+    ("auditor", "Omar Siddiqui", "auditor@mehrab.example", "Active"),
+]
+
+SUPPLIER_DEFINITIONS = [
+    ("Haji Iqbal Farms", "31303-1122334-5", "0300-1122334", "Kot Samaba"),
+    ("Al-Rehman Growers", "31303-5566778-9", "0301-5566778", "Sadiqabad"),
+    ("Chaudhry Cane Supply", "31303-9988776-1", "0302-9988776", "Liaquatpur"),
+]
+
+OPERATIONAL_MODELS = [
+    DemoScenarioRun,
+    AuditLog,
+    ExceptionAlert,
+    PackagingSerial,
+    BuyerReceipt,
+    Dispatch,
+    WarehouseReceipt,
+    ProductionBatchCaneIntake,
+    ProductionBatch,
+    CaneIntake,
 ]
 
 
 def seed_database(db: Session) -> None:
-    if not settings.seed_demo_data or db.query(Role).first():
-        return
+    if settings.seed_demo_data:
+        load_demo_seed_data(db)
 
-    roles = {}
+
+def ensure_demo_reference_data(db: Session) -> tuple[Mill, dict[str, User], list[FarmerSupplier]]:
+    roles: dict[str, Role] = {}
     for code, name, description in ROLE_DEFINITIONS:
-        role = Role(code=code, name=name, description=description)
-        db.add(role)
+        role = db.query(Role).filter(Role.code == code).first()
+        if not role:
+            role = Role(code=code, name=name, description=description)
+            db.add(role)
+        else:
+            role.name = name
+            role.description = description
         roles[code] = role
-
-    mill = Mill(
-        code="MEHRAB",
-        name="Mehrab Sugar Mills",
-        province="Punjab",
-        district="Rahim Yar Khan",
-        license_number="PSMA-RYK-042",
-        ntn="7394821-6",
-        expected_recovery_percentage=10.5,
-        activated_warehouse_limit_hours=24,
-        dispatch_receipt_limit_hours=48,
-    )
-    db.add(mill)
     db.flush()
 
-    users = [
-        User(name="Ayesha Khan", email="owner@mehrab.example", role=roles["mill_owner"], mill=mill),
-        User(name="Bilal Ahmed", email="operator@mehrab.example", role=roles["mill_operator"], mill=mill),
-        User(name="Sara Malik", email="warehouse@mehrab.example", role=roles["warehouse_manager"], mill=mill),
-        User(name="Faisal Raza", email="fbr@mehrab.example", role=roles["fbr_officer"], mill=mill),
-        User(name="Nadia Qureshi", email="admin@gov.example", role=roles["government_admin"], mill=None),
-        User(name="Omar Siddiqui", email="auditor@mehrab.example", role=roles["auditor"], mill=mill),
-    ]
-    db.add_all(users)
+    mill = db.query(Mill).filter(Mill.code == "MEHRAB").first()
+    if not mill:
+        mill = Mill(
+            code="MEHRAB",
+            name="Mehrab Sugar Mills",
+            province="Punjab",
+            district="Rahim Yar Khan",
+            license_number="PSMA-RYK-042",
+            ntn="7394821-6",
+            expected_recovery_percentage=settings.default_expected_recovery_percentage,
+            activated_warehouse_limit_hours=settings.activated_warehouse_limit_hours,
+            dispatch_receipt_limit_hours=settings.dispatch_receipt_limit_hours,
+        )
+        db.add(mill)
+    else:
+        mill.expected_recovery_percentage = settings.default_expected_recovery_percentage
+        mill.activated_warehouse_limit_hours = settings.activated_warehouse_limit_hours
+        mill.dispatch_receipt_limit_hours = settings.dispatch_receipt_limit_hours
     db.flush()
 
-    suppliers = [
-        FarmerSupplier(mill=mill, name="Haji Iqbal Farms", cnic="31303-1122334-5", phone="0300-1122334", village="Kot Samaba"),
-        FarmerSupplier(mill=mill, name="Al-Rehman Growers", cnic="31303-5566778-9", phone="0301-5566778", village="Sadiqabad"),
-        FarmerSupplier(mill=mill, name="Chaudhry Cane Supply", cnic="31303-9988776-1", phone="0302-9988776", village="Liaquatpur"),
-    ]
-    db.add_all(suppliers)
+    users: dict[str, User] = {}
+    for role_code, name, email, status in USER_DEFINITIONS:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            user = User(name=name, email=email, role=roles[role_code], mill=None if role_code == "government_admin" else mill, status=status)
+            db.add(user)
+        else:
+            user.name = name
+            user.role = roles[role_code]
+            user.mill = None if role_code == "government_admin" else mill
+            user.status = status
+        users[role_code] = user
     db.flush()
 
+    suppliers: list[FarmerSupplier] = []
+    for name, cnic, phone, village in SUPPLIER_DEFINITIONS:
+        supplier = db.query(FarmerSupplier).filter(FarmerSupplier.mill_id == mill.id, FarmerSupplier.name == name).first()
+        if not supplier:
+            supplier = FarmerSupplier(mill=mill, name=name, cnic=cnic, phone=phone, village=village)
+            db.add(supplier)
+        else:
+            supplier.cnic = cnic
+            supplier.phone = phone
+            supplier.village = village
+        suppliers.append(supplier)
+    db.flush()
+    return mill, users, suppliers
+
+
+def load_demo_seed_data(db: Session) -> bool:
+    mill, users, suppliers = ensure_demo_reference_data(db)
+    if _has_operational_data(db):
+        db.commit()
+        return False
+    _seed_operational_data(db, mill, users, suppliers)
+    db.commit()
+    return True
+
+
+def clear_demo_operational_data(db: Session) -> int:
+    deleted = 0
+    for model in OPERATIONAL_MODELS:
+        deleted += db.query(model).delete(synchronize_session=False)
+    db.commit()
+    return deleted
+
+
+def reset_demo_database(db: Session) -> None:
+    clear_demo_operational_data(db)
+    load_demo_seed_data(db)
+
+
+def _has_operational_data(db: Session) -> bool:
+    return any(db.query(model).first() is not None for model in [CaneIntake, ProductionBatch, PackagingSerial, Dispatch, BuyerReceipt, ExceptionAlert, AuditLog])
+
+
+def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], suppliers: list[FarmerSupplier]) -> None:
     now = utcnow()
+    operator = users["mill_operator"]
+    warehouse_user = users["warehouse_manager"]
+    owner = users["mill_owner"]
+    fbr = users["fbr_officer"]
+    auditor = users["auditor"]
+
     cane_intakes = [
         CaneIntake(
             delivery_id="CI-2026-0001",
@@ -90,8 +176,8 @@ def seed_database(db: Session) -> None:
             net_cane_weight_kg=19750,
             collection_point="Kot Samaba CP-1",
             mill_gate_timestamp=now - timedelta(hours=4),
-            operator_user_id=users[1].id,
-            operator_name=users[1].name,
+            operator_user_id=operator.id,
+            operator_name=operator.name,
             status="ACCEPTED",
         ),
         CaneIntake(
@@ -105,8 +191,8 @@ def seed_database(db: Session) -> None:
             net_cane_weight_kg=22000,
             collection_point="Sadiqabad CP-2",
             mill_gate_timestamp=now - timedelta(hours=3, minutes=20),
-            operator_user_id=users[1].id,
-            operator_name=users[1].name,
+            operator_user_id=operator.id,
+            operator_name=operator.name,
             status="ACCEPTED",
         ),
         CaneIntake(
@@ -120,8 +206,8 @@ def seed_database(db: Session) -> None:
             net_cane_weight_kg=18400,
             collection_point="Liaquatpur CP-4",
             mill_gate_timestamp=now - timedelta(hours=1, minutes=15),
-            operator_user_id=users[1].id,
-            operator_name=users[1].name,
+            operator_user_id=operator.id,
+            operator_name=operator.name,
             manual_weight_override="YES",
             override_reason="Weighbridge sensor recalibrated after supervisor verification.",
             status="UNDER_REVIEW",
@@ -179,47 +265,21 @@ def seed_database(db: Session) -> None:
             status = SerialStatus.DISPATCHED.value
         if 51 <= sequence <= 60:
             status = SerialStatus.RECEIVED.value
-        serials.append(
-            PackagingSerial(
-                serial_number=_serial(date_token, "BATCH-2026-A01", sequence),
-                production_batch=batches[0],
-                bag_weight_kg=50,
-                sku="SUGAR_50KG",
-                packaging_line="Line A",
-                sequence_number=sequence,
-                status=status,
-                timestamp=now - timedelta(hours=2, minutes=sequence),
-                status_updated_at=now - timedelta(hours=1, minutes=sequence % 40),
-                warehouse_location=location,
-            )
-        )
+        serials.append(_serial_model(date_token, batches[0], sequence, status, location, now))
     for sequence in range(1, 31):
         status = SerialStatus.ACTIVATED.value
-        location = None
+        status_time = now - timedelta(hours=27, minutes=sequence)
         void_reason = None
         supervisor_id = None
         if sequence <= 5:
             status = SerialStatus.ISSUED.value
+            status_time = now - timedelta(minutes=sequence)
         elif 26 <= sequence <= 30:
             status = SerialStatus.VOIDED.value
+            status_time = now - timedelta(minutes=sequence)
             void_reason = "Duplicate scan during night line test."
-            supervisor_id = users[0].id
-        serials.append(
-            PackagingSerial(
-                serial_number=_serial(date_token, "BATCH-2026-N01", sequence),
-                production_batch=batches[1],
-                bag_weight_kg=50,
-                sku="SUGAR_50KG",
-                packaging_line="Line C",
-                sequence_number=sequence,
-                status=status,
-                timestamp=now - timedelta(hours=27, minutes=sequence) if status == SerialStatus.ACTIVATED.value else now - timedelta(minutes=sequence),
-                status_updated_at=now - timedelta(hours=27, minutes=sequence) if status == SerialStatus.ACTIVATED.value else now - timedelta(minutes=sequence),
-                warehouse_location=location,
-                void_reason=void_reason,
-                supervisor_approval_user_id=supervisor_id,
-            )
-        )
+            supervisor_id = owner.id
+        serials.append(_serial_model(date_token, batches[1], sequence, status, None, now, status_time, void_reason, supervisor_id))
     db.add_all(serials)
     db.flush()
 
@@ -297,7 +357,7 @@ def seed_database(db: Session) -> None:
             buyer_order_id="LHR-DC-02",
             vehicle_number="LES-7750",
             driver_name="Naveed Iqbal",
-            invoice_number=None,
+            invoice_number="INV-2026-9083",
             serial_range=serial_range(dispatch_3_numbers),
             serial_numbers=to_csv(dispatch_3_numbers),
             quantity=len(dispatch_3_numbers) + 1,
@@ -329,46 +389,47 @@ def seed_database(db: Session) -> None:
     for serial in serials[50:59]:
         serial.buyer_receipt = buyer_receipt
 
-    exceptions = [
-        _exception(ExceptionType.RECOVERY_VARIANCE_WARNING, "ProductionBatch", "BATCH-2026-A01", "Actual output is 3.05% below expected recovery threshold.", "MEDIUM", now - timedelta(hours=2)),
-        _exception(ExceptionType.RECOVERY_VARIANCE_CRITICAL, "ProductionBatch", "BATCH-2026-N01", "Actual output is 13.04% below expected recovery threshold.", "CRITICAL", now - timedelta(hours=1, minutes=20)),
-        _exception(ExceptionType.SERIAL_GAP, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 6), "Night batch activation skipped several issued serials.", "HIGH", now - timedelta(hours=1)),
-        _exception(ExceptionType.SERIAL_OUT_OF_ORDER, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 8), "Serial activation occurred while lower sequences remained ISSUED.", "MEDIUM", now - timedelta(minutes=58)),
-        _exception(ExceptionType.ACTIVATED_NOT_WAREHOUSED, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 10), "Activated serial has not been warehoused after 24 hours.", "MEDIUM", now - timedelta(minutes=54)),
-        _exception(ExceptionType.DISPATCH_WITHOUT_INVOICE, "Dispatch", "DSP-2026-0003", "Dispatch was held because invoice number is missing.", "HIGH", now - timedelta(minutes=50)),
-        _exception(ExceptionType.DISPATCH_QUANTITY_MISMATCH, "Dispatch", "DSP-2026-0003", "Dispatch quantity is one bag higher than scanned serial count.", "HIGH", now - timedelta(minutes=45)),
-        _exception(ExceptionType.RECEIPT_SHORTAGE, "Dispatch", "DSP-2026-0002", "Buyer receipt is missing one dispatched serial.", "HIGH", now - timedelta(minutes=40)),
-        _exception(ExceptionType.RECEIPT_MISSING, "Dispatch", "DSP-2026-0001", "Buyer acknowledgement has not been received for pending dispatch.", "LOW", now - timedelta(minutes=35)),
-        _exception(ExceptionType.MANUAL_OVERRIDE, "CaneIntake", "CI-2026-0003", "Manual tare override was entered after weighbridge recalibration.", "HIGH", now - timedelta(minutes=25)),
-    ]
-    db.add_all(exceptions)
+    db.add_all(
+        [
+            _exception(ExceptionType.RECOVERY_VARIANCE_WARNING, "ProductionBatch", "BATCH-2026-A01", "Actual output is 3.05% below expected recovery threshold.", "MEDIUM", now - timedelta(hours=2)),
+            _exception(ExceptionType.RECOVERY_VARIANCE_CRITICAL, "ProductionBatch", "BATCH-2026-N01", "Actual output is 13.04% below expected recovery threshold.", "CRITICAL", now - timedelta(hours=1, minutes=20)),
+            _exception(ExceptionType.SERIAL_GAP, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 6), "Night batch activation skipped several issued serials.", "HIGH", now - timedelta(hours=1)),
+            _exception(ExceptionType.SERIAL_OUT_OF_ORDER, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 8), "Serial activation occurred while lower sequences remained ISSUED.", "MEDIUM", now - timedelta(minutes=58)),
+            _exception(ExceptionType.ACTIVATED_NOT_WAREHOUSED, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 10), "Activated serial has not been warehoused after 24 hours.", "HIGH", now - timedelta(minutes=54)),
+            _exception(ExceptionType.DISPATCH_WITHOUT_INVOICE, "Dispatch", "DSP-2026-0003", "A dispatch attempt without invoice evidence was blocked before release.", "CRITICAL", now - timedelta(minutes=50)),
+            _exception(ExceptionType.DISPATCH_QUANTITY_MISMATCH, "Dispatch", "DSP-2026-0003", "Dispatch quantity is one bag higher than scanned serial count.", "HIGH", now - timedelta(minutes=45)),
+            _exception(ExceptionType.RECEIPT_SHORTAGE, "Dispatch", "DSP-2026-0002", "Buyer receipt is missing one dispatched serial.", "HIGH", now - timedelta(minutes=40)),
+            _exception(ExceptionType.RECEIPT_MISSING, "Dispatch", "DSP-2026-0001", "Buyer acknowledgement has not been received for pending dispatch.", "LOW", now - timedelta(minutes=35)),
+            _exception(ExceptionType.MANUAL_OVERRIDE, "CaneIntake", "CI-2026-0003", "Manual tare override was entered after weighbridge recalibration.", "HIGH", now - timedelta(minutes=25)),
+        ]
+    )
     db.flush()
 
     audit = AuditService(db)
     audit_events = [
-        (users[1], "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0001", {"net_cane_weight_kg": 19750}, "Gate intake accepted with weighbridge evidence."),
-        (users[1], "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0002", {"net_cane_weight_kg": 22000}, "Gate intake accepted with weighbridge evidence."),
-        (users[1], "MANUAL_OVERRIDE", "CaneIntake", "CI-2026-0003", {"override_reason": cane_intakes[2].override_reason}, "Manual tare override recorded."),
-        (users[1], "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-A01", {"variance_status": "WARNING"}, "Morning batch mass balance calculated."),
-        (users[1], "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-N01", {"variance_status": "CRITICAL"}, "Night batch mass balance calculated."),
-        (users[1], "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-A01", {"quantity": 70}, "Morning packaging serials issued."),
-        (users[1], "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-N01", {"quantity": 30}, "Night packaging serials issued."),
+        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0001", {"net_cane_weight_kg": 19750}, "Gate intake accepted with weighbridge evidence."),
+        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0002", {"net_cane_weight_kg": 22000}, "Gate intake accepted with weighbridge evidence."),
+        (operator, "MANUAL_OVERRIDE", "CaneIntake", "CI-2026-0003", {"override_reason": cane_intakes[2].override_reason}, "Manual tare override recorded."),
+        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-A01", {"variance_status": "WARNING"}, "Morning batch mass balance calculated."),
+        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-N01", {"variance_status": "CRITICAL"}, "Night batch mass balance calculated."),
+        (operator, "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-A01", {"quantity": 70}, "Morning packaging serials issued."),
+        (operator, "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-N01", {"quantity": 30}, "Night packaging serials issued."),
     ]
     for serial in serials[:5]:
-        audit_events.append((users[1], "ACTIVATE_SERIAL", "PackagingSerial", serial.serial_number, {"status": serial.status}, "Serial activation event captured."))
+        audit_events.append((operator, "ACTIVATE_SERIAL", "PackagingSerial", serial.serial_number, {"status": serial.status}, "Serial activation event captured."))
     for serial in serials[:8]:
-        audit_events.append((users[2], "WAREHOUSE_SERIAL", "PackagingSerial", serial.serial_number, {"warehouse_location": serial.warehouse_location}, "Serial warehoused."))
+        audit_events.append((warehouse_user, "WAREHOUSE_SERIAL", "PackagingSerial", serial.serial_number, {"warehouse_location": serial.warehouse_location}, "Serial warehoused."))
     audit_events.extend(
         [
-            (users[2], "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[0].id), {"quantity": receipts[0].quantity}, "Warehouse receipt created."),
-            (users[2], "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[1].id), {"quantity": receipts[1].quantity}, "Warehouse receipt created."),
-            (users[2], "CREATE_DISPATCH", "Dispatch", "DSP-2026-0001", {"quantity": 10}, "Dispatch released."),
-            (users[2], "CREATE_DISPATCH", "Dispatch", "DSP-2026-0002", {"quantity": 10}, "Dispatch released."),
-            (users[2], "CREATE_DISPATCH", "Dispatch", "DSP-2026-0003", {"quantity": 6, "invoice_number": None}, "Held dispatch created with missing invoice."),
-            (users[2], "CREATE_BUYER_RECEIPT", "BuyerReceipt", "DSP-2026-0002", {"received_quantity": 9}, "Buyer receipt shortage captured."),
-            (users[3], "EXCEPTION_IN_REVIEW", "ExceptionAlert", "DISPATCH_WITHOUT_INVOICE", {"status": "IN_REVIEW"}, "FBR officer opened review."),
-            (users[5], "REVIEW_NOTE", "ExceptionAlert", "RECEIPT_SHORTAGE", {"note": "Receipt evidence requested."}, "Auditor added review note."),
-            (users[0], "VOID_SERIAL", "PackagingSerial", serials[-1].serial_number, {"reason": serials[-1].void_reason}, "Owner approved voided serial."),
+            (warehouse_user, "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[0].id), {"quantity": receipts[0].quantity}, "Warehouse receipt created."),
+            (warehouse_user, "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[1].id), {"quantity": receipts[1].quantity}, "Warehouse receipt created."),
+            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DSP-2026-0001", {"quantity": 10}, "Dispatch released."),
+            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DSP-2026-0002", {"quantity": 10}, "Dispatch released."),
+            (warehouse_user, "BLOCK_DISPATCH", "Dispatch", "DSP-2026-0003", {"reason": "missing invoice"}, "Dispatch attempt without invoice was blocked and held for review."),
+            (warehouse_user, "CREATE_BUYER_RECEIPT", "BuyerReceipt", "DSP-2026-0002", {"received_quantity": 9}, "Buyer receipt shortage captured."),
+            (fbr, "EXCEPTION_IN_REVIEW", "ExceptionAlert", "DISPATCH_WITHOUT_INVOICE", {"status": "IN_REVIEW"}, "FBR officer opened review."),
+            (auditor, "REVIEW_NOTE", "ExceptionAlert", "RECEIPT_SHORTAGE", {"note": "Receipt evidence requested."}, "Auditor added review note."),
+            (owner, "VOID_SERIAL", "PackagingSerial", serials[-1].serial_number, {"reason": serials[-1].void_reason}, "Owner approved voided serial."),
         ]
     )
     for actor, action, entity_type, entity_id, new_value, detail in audit_events:
@@ -381,29 +442,33 @@ def seed_database(db: Session) -> None:
             detail=detail,
         )
 
-    db.commit()
 
-
-def reset_demo_database(db: Session) -> None:
-    for model in [
-        DemoScenarioRun,
-        AuditLog,
-        ExceptionAlert,
-        PackagingSerial,
-        BuyerReceipt,
-        Dispatch,
-        WarehouseReceipt,
-        ProductionBatchCaneIntake,
-        ProductionBatch,
-        CaneIntake,
-        FarmerSupplier,
-        User,
-        Mill,
-        Role,
-    ]:
-        db.query(model).delete()
-    db.commit()
-    seed_database(db)
+def _serial_model(
+    date_token: str,
+    batch: ProductionBatch,
+    sequence: int,
+    status: str,
+    location: str | None,
+    now: datetime,
+    status_time: datetime | None = None,
+    void_reason: str | None = None,
+    supervisor_id: int | None = None,
+) -> PackagingSerial:
+    status_time = status_time or now - timedelta(hours=1, minutes=sequence % 40)
+    return PackagingSerial(
+        serial_number=_serial(date_token, batch.batch_id, sequence),
+        production_batch=batch,
+        bag_weight_kg=50,
+        sku="SUGAR_50KG",
+        packaging_line="Line A" if batch.batch_id.endswith("A01") else "Line C",
+        sequence_number=sequence,
+        status=status,
+        timestamp=now - timedelta(hours=2, minutes=sequence),
+        status_updated_at=status_time,
+        warehouse_location=location,
+        void_reason=void_reason,
+        supervisor_approval_user_id=supervisor_id,
+    )
 
 
 def _serial(date_token: str, batch_id: str, sequence: int) -> str:

@@ -79,7 +79,6 @@ ROLE_PERMISSIONS = {
         "dashboard:read",
         "mill:read",
         "exception:read",
-        "audit:read",
         "roles:read",
         "settings:read",
         "demo:read",
@@ -149,7 +148,7 @@ def permission_for_request(method: str, path: str) -> str | None:
     if path.startswith("/api/v1/settings"):
         return "settings:read"
     if path.startswith("/api/v1/demo"):
-        return "demo:run" if method == "POST" else "demo:read"
+        return "demo:run" if method in {"POST", "DELETE"} else "demo:read"
     return None
 
 

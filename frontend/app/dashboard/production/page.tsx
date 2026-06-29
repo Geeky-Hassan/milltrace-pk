@@ -8,12 +8,12 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatePanel } from "@/components/StatePanel";
 import { TableFilters } from "@/components/TableFilters";
 import { Toast, type ToastState } from "@/components/Toast";
-import { createProductionBatch, getProductionBatches } from "@/lib/api";
+import { createProductionBatch, getCaneIntakes, getProductionBatches } from "@/lib/api";
 import { formatKg } from "@/lib/format";
 import { canCreateProduction } from "@/lib/roles";
 import { matchesSearch, matchesValue, uniqueOptions } from "@/lib/table";
 import { useDemoRole } from "@/lib/use-demo-role";
-import type { ProductionBatch } from "@/types";
+import type { CaneIntake, ProductionBatch } from "@/types";
 
 const initialForm = {
   shift: "Morning",
@@ -35,6 +35,7 @@ const columns: DataTableColumn<ProductionBatch>[] = [
 export default function ProductionPage() {
   const role = useDemoRole();
   const [rows, setRows] = useState<ProductionBatch[]>([]);
+  const [intakes, setIntakes] = useState<CaneIntake[]>([]);
   const [form, setForm] = useState(initialForm);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -44,8 +45,11 @@ export default function ProductionPage() {
   const canCreate = canCreateProduction(role);
 
   useEffect(() => {
-    getProductionBatches()
-      .then(setRows)
+    Promise.all([getProductionBatches(), getCaneIntakes()])
+      .then(([batchRows, intakeRows]) => {
+        setRows(batchRows);
+        setIntakes(intakeRows);
+      })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Production batches could not load."))
       .finally(() => setLoading(false));
   }, []);
@@ -63,6 +67,18 @@ export default function ProductionPage() {
     () => rows.filter((row) => matchesSearch(row, search) && matchesValue(row.variance_status, status)),
     [rows, search, status],
   );
+  const selectedIntakeIds = useMemo(
+    () => form.cane_intake_ids.split(",").map((value) => value.trim()).filter(Boolean),
+    [form.cane_intake_ids],
+  );
+
+  function toggleIntake(id: number) {
+    const value = String(id);
+    const next = selectedIntakeIds.includes(value)
+      ? selectedIntakeIds.filter((item) => item !== value)
+      : [...selectedIntakeIds, value];
+    setForm({ ...form, cane_intake_ids: next.join(", ") });
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -127,6 +143,28 @@ export default function ProductionPage() {
               Downtime explanation
               <input value={form.downtime_explanation} onChange={(event) => setForm({ ...form, downtime_explanation: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
             </label>
+          </div>
+          <div className="mt-4 rounded-lg bg-ink-50 p-4 ring-1 ring-ink-100">
+            <p className="text-xs font-bold uppercase text-ink-500">Available cane intakes</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {intakes.length === 0 ? (
+                <span className="text-sm text-ink-500">No cane intakes yet. Create one first.</span>
+              ) : (
+                intakes.slice(0, 8).map((intake) => {
+                  const selected = selectedIntakeIds.includes(String(intake.id));
+                  return (
+                    <button
+                      key={intake.id}
+                      type="button"
+                      onClick={() => toggleIntake(intake.id)}
+                      className={`rounded-md border px-3 py-2 text-xs font-bold transition ${selected ? "border-emerald-300 bg-emerald-50 text-compliance-green" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"}`}
+                    >
+                      {intake.id} - {intake.delivery_id} ({formatKg(intake.net_cane_weight_kg)})
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </form>
       ) : null}

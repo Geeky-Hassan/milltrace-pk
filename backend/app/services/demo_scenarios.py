@@ -284,18 +284,21 @@ class DemoScenarioService:
 
     def _run_dispatch_without_invoice(self, role: str) -> str:
         serials = self._fresh_warehoused_serials(2)
-        DispatchService(self.db).create(
-            DispatchCreate(
-                buyer="No Invoice Buyer",
-                vehicle_number=self._unique("NOINV"),
-                driver_name="No Invoice Driver",
-                invoice_number=None,
-                serial_numbers=serials,
-                quantity=len(serials),
-                actor_user_id=self._user_id("warehouse_manager"),
+        try:
+            DispatchService(self.db).create(
+                DispatchCreate(
+                    buyer="No Invoice Buyer",
+                    vehicle_number=self._unique("NOINV"),
+                    driver_name="No Invoice Driver",
+                    invoice_number=None,
+                    serial_numbers=serials,
+                    quantity=len(serials),
+                    actor_user_id=self._user_id("warehouse_manager"),
+                )
             )
-        )
-        return "Dispatch was created as a held/high-risk movement because invoice evidence was missing."
+        except DomainError:
+            pass
+        return "Dispatch was blocked because invoice evidence was missing."
 
     def _run_wrong_buyer_receipt(self, role: str) -> str:
         dispatch, serials = self._fresh_dispatch("Buyer A Foods", 2)
@@ -369,13 +372,14 @@ class DemoScenarioService:
         self._run_critical_recovery_variance(role)
         self._run_serial_gap_detected(role)
         self._run_activated_not_warehoused(role)
+        self._run_dispatch_without_invoice(role)
         serials = self._fresh_warehoused_serials(2)
         dispatch = DispatchService(self.db).create(
             DispatchCreate(
                 buyer="Fraud Chain Buyer",
                 vehicle_number=self._unique("FRD"),
                 driver_name="Fraud Chain Driver",
-                invoice_number=None,
+                invoice_number=self._unique("INV-FRD"),
                 serial_numbers=serials,
                 quantity=len(serials),
                 actor_user_id=self._user_id("warehouse_manager"),

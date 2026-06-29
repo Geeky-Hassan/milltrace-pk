@@ -30,7 +30,7 @@ export function Badge({ children, tone, className }: { children: React.ReactNode
   return (
     <span
       className={clsx(
-        "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        "inline-flex max-w-full items-center whitespace-normal break-words rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
         toneClasses[resolvedTone] ?? toneClasses.neutral,
         className,
       )}

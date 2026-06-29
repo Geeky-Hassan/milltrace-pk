@@ -45,7 +45,7 @@ export function DataTable<T>({
               rows.map((row) => (
                 <tr key={getRowKey(row)} className="bg-white transition hover:bg-emerald-50/40">
                   {columns.map((column) => (
-                    <td key={column.key} className={clsx("whitespace-nowrap px-4 py-3 text-ink-700", column.className)}>
+                    <td key={column.key} className={clsx("max-w-[18rem] whitespace-normal break-words px-4 py-3 align-top text-ink-700", column.className)}>
                       {column.cell(row)}
                     </td>
                   ))}
@@ -58,4 +58,3 @@ export function DataTable<T>({
     </div>
   );
 }
-

@@ -2,76 +2,69 @@
 
 MillTrace PK is a role-based MVP for sugar mill traceability, anti-diversion, anti-theft, and tax-compliance monitoring in Pakistan.
 
-It tracks the chain from cane intake to production, packaging serials, warehouse custody, dispatch, buyer receipt, exceptions, risk scoring, and tamper-evident audit logs.
+It demonstrates one complete sugar flow:
+
+Login as a role -> create cane intake -> create production batch -> generate and activate serials -> receive stock into warehouse -> dispatch with invoice -> confirm buyer receipt -> review exceptions -> inspect audit logs.
 
 ## Problem Being Solved
 
-Sugar supply chains can lose accountability at several points:
+Sugar supply chains can lose accountability through weighbridge manipulation, cane intake suppression, underreported production, skipped serials, warehouse leakage, dispatch without invoice evidence, fake buyer receipts, manual overrides, and weak audit trails.
 
-- cane intake and weighbridge manipulation
-- suppressed or underreported production
-- recovery percentage manipulation
-- skipped or duplicate serials
-- leakage between packaging and warehouse
-- dispatch without invoice evidence
-- fake or wrong buyer receipt
-- manual override abuse
-- weak audit trail
+MillTrace PK gives mill owners, FBR officers, government teams, and auditors one shared evidence layer.
 
-MillTrace PK gives mill owners, FBR officers, government teams, and auditors a shared evidence layer.
-
-## MVP Scope
-
-Implemented in this MVP:
-
-- demo role-based login
-- cane intake records
-- production batch creation
-- expected vs actual sugar output
-- recovery variance detection
-- serial generation and lifecycle
-- warehouse receipt tracking
-- dispatch validation
-- buyer receipt matching
-- exception alerts
-- audit logs with hash chain
-- compliance risk score
-- Scope & Solution Map
-- Scenario Lab
-- Trace One Batch timeline
-
-## Simulated In MVP
-
-- Weighbridge data is manually entered or seeded.
-- FBR tax stamp/UIM data is represented by internal serial numbers.
-- Blockchain is simulated with `event_hash` and `previous_event_hash`.
-- Buyer receipt is simulated through dashboard actions.
-- Production counters are simulated with batch output values.
-- GPS/e-bilty integration is not live yet.
-
-## Future Real Integrations
-
-- real weighbridge API
-- FBR Track & Trace / UIM integration
-- ERP/inventory integration
-- packaging line PLC or hopper counter
-- checkweigher integration
-- CCTV/NVR metadata
-- e-invoice integration
-- e-bilty/cargo tracking
-- buyer/distributor mobile app
-- bank/payment verification for farmers
-- real blockchain or permissioned ledger anchoring
-
-## Stack
+## Tech Stack
 
 - Frontend: Next.js, TypeScript, Tailwind CSS
 - Backend: FastAPI, SQLAlchemy
 - Database: PostgreSQL
 - API base path: `/api/v1`
-- Demo auth: signed role token stored after role selection
+- Demo auth: signed role token after role selection
+- Audit integrity: local hash-chain with `event_hash` and `previous_event_hash`
 
-## Setup
+## MVP Scope
+
+Implemented:
+
+- role-based demo login
+- dashboard with risk score and compliance intelligence
+- cane intake validation
+- production mass balance and recovery variance
+- serial generation and lifecycle
+- warehouse receipt tracking
+- dispatch validation with invoice requirement
+- buyer receipt matching
+- exceptions and audit logs
+- seed data load/clear controls
+- Scope & Solution Map
+- End-to-End Flow
+- Scenario Lab
+- Trace One Batch
+- Roles & Responsibilities
+
+## Simulated In MVP
+
+- Weighbridge data is manually entered or seeded.
+- FBR tax stamp/UIM data uses internal serial numbers.
+- Blockchain is simulated through the audit hash chain.
+- Buyer receipt is simulated through dashboard actions.
+- Production counters use batch output values.
+- GPS/e-bilty and live FBR integrations are not connected yet.
+
+## Future Integrations
+
+- real weighbridge API
+- FBR Track & Trace / UIM
+- ERP/inventory system
+- packaging line PLC or hopper counter
+- checkweigher
+- CCTV/NVR metadata
+- e-invoice
+- e-bilty/cargo tracking
+- buyer/distributor mobile app
+- farmer payment verification
+- permissioned ledger or blockchain anchoring
+
+## Local Setup
 
 Backend:
 
@@ -98,97 +91,107 @@ npm run dev
 
 Open `http://localhost:3000`. API docs are at `http://localhost:8000/docs`.
 
-## Seed And Reset Demo Data
-
-The backend creates tables and seed data on startup when `SEED_DEMO_DATA=true`.
-
-Seed data includes:
-
-- 1 sugar mill
-- 3 suppliers
-- 2 production batches
-- 100 packaging serials
-- 2 warehouse locations
-- 3 dispatches
-- 2 buyers
-- 8-12 exception alerts
-- 20+ audit logs with event hashes
-
-Reset seeded demo data:
-
-```bash
-curl -X POST http://localhost:8000/api/v1/demo/reset ^
-  -H "Authorization: Bearer <demo-token>"
-```
-
-You can also use **Scenario Lab > Reset Demo Data**.
-
-## Test Commands
+## Environment Variables
 
 Backend:
 
 ```bash
-cd backend
-.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+DATABASE_URL=postgresql+psycopg://milltrace:milltrace@localhost:5432/milltrace_pk
+FRONTEND_URL=http://localhost:3000
+SEED_DEMO_DATA=true
+DEFAULT_EXPECTED_RECOVERY_PERCENTAGE=10.5
+ACTIVATED_WAREHOUSE_LIMIT_HOURS=24
+DISPATCH_RECEIPT_LIMIT_HOURS=48
+DEMO_JWT_SECRET=change-this-demo-secret
+DUPLICATE_VEHICLE_WINDOW_MINUTES=20
+MAX_REASONABLE_RECOVERY_PERCENTAGE=14.5
+MIN_REASONABLE_RECOVERY_PERCENTAGE=8.0
+ALLOWED_WAREHOUSE_LOCATIONS=WH-A / Bay 03,WH-B / Bay 01
 ```
 
 Frontend:
 
 ```bash
-cd frontend
-npm run lint
-npm run build
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-## Scenario Lab
+For Vercel Services, use:
 
-The Scenario Lab runs best-to-worst cases and records:
+```bash
+NEXT_PUBLIC_API_URL=https://<your-domain>/_/backend/api/v1
+FRONTEND_URL=https://<your-domain>
+```
 
-- scenario executed
-- gap tested
-- expected detection
-- actual exceptions
-- audit logs created
-- risk score impact
-- pass/partial result
+## Seed And Clear Demo Data
 
-Key scenarios include:
+The backend seeds reference data and operational demo data when `SEED_DEMO_DATA=true`.
 
-- Fully Compliant Flow
-- Minor Recovery Variance
-- Warning Recovery Variance
-- Critical Recovery Variance
-- Serial Gap Detected
-- Duplicate Serial Used
-- Dispatch Without Warehouse Receipt
-- Dispatch Without Invoice
-- Wrong Buyer Receipt
-- Buyer Receipt Shortage
-- Extra Serial In Buyer Receipt
-- Manual Override Abuse
-- Cross-Mill Serial Fraud
-- Activated Serials Not Warehoused In Time
-- Complete Fraud Chain
+Seed data includes:
 
-## Role Permissions
+- 1 sugar mill
+- 3 farmers/suppliers
+- 2 production batches
+- 100 packaging serials
+- 2 warehouse locations
+- 3 dispatches
+- 2 buyers/distributors
+- 8-12 exception alerts
+- 20+ audit log records
 
-- Mill Owner: view business dashboard, production, stock, dispatch, exceptions, audit logs, scope, scenario lab, and trace timeline.
-- Mill Operator: create cane intake, create production batches, activate/void serials with approval, and view production exceptions.
-- Warehouse Manager: create warehouse receipts, dispatches, and buyer receipts.
-- FBR Officer: view compliance dashboard, exceptions, serial lifecycle, audit logs, and mark exceptions `IN_REVIEW`.
-- Government Admin: view high-level dashboard, all mills, exceptions, role management, settings, scope, and scenarios.
-- Auditor: view audit logs and exceptions; resolve or dismiss exceptions only with reason.
+API commands:
 
-Backend middleware checks signed demo tokens and validates permissions for every sensitive endpoint.
+```bash
+curl -X POST http://localhost:8000/api/v1/demo/seed -H "Authorization: Bearer <demo-token>"
+curl -X DELETE http://localhost:8000/api/v1/demo/seed -H "Authorization: Bearer <demo-token>"
+curl -X POST http://localhost:8000/api/v1/demo/reset -H "Authorization: Bearer <demo-token>"
+```
 
-## Main API Routes
+Dashboard buttons:
+
+- **Load Seed Data** adds the demo dataset without duplicating it.
+- **Clear Demo Data** removes operational demo records only.
+- Roles, demo users, mill settings, and suppliers remain after clear.
+
+## Role Definitions
+
+- Mill Owner: views dashboard, production, warehouse, dispatch, exceptions, and audit logs.
+- Mill Operator: creates cane intake, creates production batches, generates and activates serials.
+- Warehouse Manager: creates warehouse receipts, dispatches, and buyer receipts.
+- FBR Officer: views compliance dashboard, exceptions, serial lifecycle, and audit logs; marks exceptions in review.
+- Government Admin: views high-level dashboard, scope, risk status, roles, and settings.
+- Auditor: views exceptions and audit logs; resolves or dismisses exceptions with reason.
+
+See `/roles` for the visual role page.
+
+## Main Pages
+
+- `/` login
+- `/dashboard` metrics, risk, and seed controls
+- `/flow` end-to-end process map
+- `/scope` scope and solution map
+- `/scenario-lab` best-to-worst test cases
+- `/trace-batch` batch lifecycle timeline
+- `/roles` role responsibilities
+- `/dashboard/cane-intake`
+- `/dashboard/production`
+- `/dashboard/packaging`
+- `/dashboard/warehouse`
+- `/dashboard/dispatch`
+- `/dashboard/buyer-receipts`
+- `/dashboard/exceptions`
+- `/dashboard/audit-logs`
+- `/dashboard/settings`
+
+## API Routes
 
 - `POST /api/v1/auth/demo-login`
 - `GET /api/v1/dashboard/summary`
+- `POST /api/v1/demo/seed`
+- `DELETE /api/v1/demo/seed`
+- `POST /api/v1/demo/reset`
 - `GET /api/v1/demo/scenarios`
 - `POST /api/v1/demo/scenarios/{scenario_id}/run`
 - `GET /api/v1/demo/scenarios/{scenario_id}/result`
-- `POST /api/v1/demo/reset`
 - `GET /api/v1/demo/gap-map`
 - `GET /api/v1/demo/trace/{batch_id}`
 - `GET|POST|PATCH|DELETE /api/v1/cane-intakes`
@@ -203,22 +206,36 @@ Backend middleware checks signed demo tokens and validates permissions for every
 - `PATCH /api/v1/exceptions/{id}/resolve`
 - `GET /api/v1/audit-logs`
 
-## Suggested Live Demo Script
+## Test Commands
 
-1. Open **Scope & Solution Map** and explain what is implemented, simulated, and future-integrated.
-2. Open **Scenario Lab** and run **Fully Compliant Flow**.
-3. Open **Trace One Batch** and show the timeline.
-4. Run **Serial Gap Detected** and **Dispatch Without Invoice**.
-5. Open **Dashboard** and show Compliance Intelligence.
-6. Login as **FBR Officer** and mark an exception `IN_REVIEW`.
-7. Login as **Auditor** and resolve or dismiss an exception with reason.
-8. Run **Complete Fraud Chain** and show how multiple weak signals raise critical risk.
+Backend:
 
-Detailed scripts:
+```bash
+cd backend
+pytest
+```
 
-- [MVP Demo Script](docs/MVP_DEMO_SCRIPT.md)
-- [Scope And Assumptions](docs/SCOPE_AND_ASSUMPTIONS.md)
-- [Scenario Testing Guide](docs/SCENARIO_TESTING_GUIDE.md)
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+## Suggested Demo Flow
+
+1. Login as Mill Owner and open `/scope`.
+2. Open `/flow` to explain the full chain.
+3. Open Dashboard and use **Load Seed Data**.
+4. Open Scenario Lab and run **Fully Compliant Flow**.
+5. Open Trace One Batch for `BATCH-2026-A01`.
+6. Run **Serial Gap Detected** and **Dispatch Without Invoice**.
+7. Login as FBR Officer and mark an exception `IN_REVIEW`.
+8. Login as Auditor and resolve or dismiss an exception with reason.
+9. Use **Clear Demo Data** and manually create the clean flow.
+
+See [Final Demo Flow](docs/FINAL_DEMO_FLOW.md), [MVP Demo Script](docs/MVP_DEMO_SCRIPT.md), [Scope And Assumptions](docs/SCOPE_AND_ASSUMPTIONS.md), and [Scenario Testing Guide](docs/SCENARIO_TESTING_GUIDE.md).
 
 ## Known MVP Limitations
 
@@ -229,6 +246,13 @@ Detailed scripts:
 - Blockchain anchoring is local hash-chain only.
 - Legal enforcement remains outside the product.
 
-## Future Blockchain Integration
+## GitHub Push Checklist
 
-Audit logs already include `event_hash`, `previous_event_hash`, and optional `blockchain_anchor_hash`. A future service can publish periodic anchor hashes to a government notary service, public chain, or permissioned consortium ledger while the operational database remains the system of record.
+```bash
+git status
+git add .
+git commit -m "Polish MillTrace PK demo flow"
+git push origin main
+```
+
+Before pushing, run backend tests and frontend lint/build.
