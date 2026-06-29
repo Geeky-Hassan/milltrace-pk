@@ -30,7 +30,7 @@ import type {
 } from "@/types";
 import { getStoredToken } from "@/lib/use-demo-role";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type RequestOptions = RequestInit & {
   fallbackOnError?: boolean;
@@ -50,10 +50,21 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function apiBaseUrl() {
+  const configured = CONFIGURED_API_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+  if (typeof window !== "undefined" && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return `${window.location.origin}/_/backend/api/v1`;
+  }
+  return "http://localhost:8000/api/v1";
+}
+
 async function request<T>(path: string, fallback: T, init?: RequestOptions): Promise<T> {
   try {
     const token = getStoredToken();
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await fetch(`${apiBaseUrl()}${path}`, {
       ...init,
       cache: "no-store",
       headers: {

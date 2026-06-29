@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,19 @@ class Settings(BaseSettings):
     allowed_warehouse_locations: str = "WH-A / Bay 03,WH-B / Bay 01"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        normalized = str(value)
+        if normalized.startswith("postgres://"):
+            normalized = normalized.replace("postgres://", "postgresql+psycopg://", 1)
+        elif normalized.startswith("postgresql://"):
+            normalized = normalized.replace("postgresql://", "postgresql+psycopg://", 1)
+        if "neon.tech" in normalized and "sslmode=" not in normalized:
+            separator = "&" if "?" in normalized else "?"
+            normalized = f"{normalized}{separator}sslmode=require"
+        return normalized
 
     @property
     def cors_origins(self) -> list[str]:
