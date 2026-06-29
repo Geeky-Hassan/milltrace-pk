@@ -1,0 +1,44 @@
+import type { BatchTrace, DemoScenario, GapMapItem } from "@/types";
+
+export const demoScenarios: DemoScenario[] = [
+  { id: "best-compliant-flow", name: "Fully Compliant Flow", scenario_type: "Best Case", difficulty: "Best Case", description: "Clean intake, production, serials, warehouse, dispatch, and receipt.", gap_tested: "Clean end-to-end accountability", expected_detection: "No critical exception; audit trail complete.", expected_exceptions: [] },
+  { id: "normal-minor-variance", name: "Minor Recovery Variance", scenario_type: "Normal Case", difficulty: "Normal Case", description: "Output is slightly below expected but inside tolerance.", gap_tested: "Normal production variation", expected_detection: "No critical exception.", expected_exceptions: [] },
+  { id: "warning-recovery-variance", name: "Warning Recovery Variance", scenario_type: "Edge Case", difficulty: "Edge Case", description: "Output falls below warning threshold.", gap_tested: "Possible production suppression", expected_detection: "RECOVERY_VARIANCE_WARNING", expected_exceptions: ["RECOVERY_VARIANCE_WARNING"] },
+  { id: "critical-recovery-variance", name: "Critical Recovery Variance", scenario_type: "High Risk", difficulty: "High Risk", description: "Output is far below expected with no downtime reason.", gap_tested: "Suppressed production", expected_detection: "RECOVERY_VARIANCE_CRITICAL", expected_exceptions: ["RECOVERY_VARIANCE_CRITICAL"] },
+  { id: "serial-gap-detected", name: "Serial Gap Detected", scenario_type: "Edge Case", difficulty: "Edge Case", description: "A serial sequence skips a number.", gap_tested: "Serial skipping", expected_detection: "SERIAL_GAP", expected_exceptions: ["SERIAL_GAP"] },
+  { id: "duplicate-serial-used", name: "Duplicate Serial Used", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Existing serial is attempted on another bag.", gap_tested: "Copied serial fraud", expected_detection: "SERIAL_DUPLICATE", expected_exceptions: ["SERIAL_DUPLICATE"] },
+  { id: "dispatch-without-warehouse", name: "Dispatch Without Warehouse Receipt", scenario_type: "High Risk", difficulty: "High Risk", description: "Activated serial is dispatched before warehouse custody.", gap_tested: "Warehouse bypass", expected_detection: "DISPATCH_INVALID_SERIAL", expected_exceptions: ["DISPATCH_INVALID_SERIAL"] },
+  { id: "dispatch-without-invoice", name: "Dispatch Without Invoice", scenario_type: "High Risk", difficulty: "High Risk", description: "Stock leaves without invoice evidence.", gap_tested: "Off-book dispatch", expected_detection: "DISPATCH_WITHOUT_INVOICE", expected_exceptions: ["DISPATCH_WITHOUT_INVOICE"] },
+  { id: "wrong-buyer-receipt", name: "Wrong Buyer Receipt", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Buyer B tries to receive Buyer A dispatch.", gap_tested: "Fake buyer receipt", expected_detection: "RECEIPT_WRONG_BUYER", expected_exceptions: ["RECEIPT_WRONG_BUYER"] },
+  { id: "buyer-receipt-shortage", name: "Buyer Receipt Shortage", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Buyer receives fewer serials than dispatched.", gap_tested: "Transport diversion", expected_detection: "RECEIPT_SHORTAGE", expected_exceptions: ["RECEIPT_SHORTAGE"] },
+  { id: "extra-serial-receipt", name: "Extra Serial In Buyer Receipt", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Receipt includes a serial not in dispatch.", gap_tested: "Product mixing", expected_detection: "RECEIPT_EXTRA_SERIAL", expected_exceptions: ["RECEIPT_EXTRA_SERIAL"] },
+  { id: "manual-override-abuse", name: "Manual Override Abuse", scenario_type: "High Risk", difficulty: "High Risk", description: "Override is attempted without a reason.", gap_tested: "Internal manipulation", expected_detection: "MANUAL_OVERRIDE", expected_exceptions: ["MANUAL_OVERRIDE"] },
+  { id: "cross-mill-serial-fraud", name: "Cross-Mill Serial Fraud", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Another mill's serial is used here.", gap_tested: "Cross-mill reuse", expected_detection: "SERIAL_BELONGS_TO_ANOTHER_MILL", expected_exceptions: ["SERIAL_BELONGS_TO_ANOTHER_MILL"] },
+  { id: "activated-not-warehoused", name: "Activated Serials Not Warehoused", scenario_type: "High Risk", difficulty: "High Risk", description: "Activated serial stays outside warehouse beyond 24 hours.", gap_tested: "Packaging leakage", expected_detection: "ACTIVATED_NOT_WAREHOUSED", expected_exceptions: ["ACTIVATED_NOT_WAREHOUSED"] },
+  { id: "complete-fraud-chain", name: "Complete Fraud Chain", scenario_type: "Worst Case", difficulty: "Worst Case", description: "Multiple weak signals appear across the chain.", gap_tested: "Connected fraud pattern", expected_detection: "Critical risk score", expected_exceptions: ["RECOVERY_VARIANCE_CRITICAL", "SERIAL_GAP", "ACTIVATED_NOT_WAREHOUSED", "DISPATCH_WITHOUT_INVOICE", "RECEIPT_MISSING"] },
+];
+
+export const gapMap: GapMapItem[] = [
+  { gap_name: "Weighbridge manipulation", current_loophole: "Weights can be edited manually.", system_control: "Net weight validation and audit trail.", demo_scenario: "Manual Override Abuse", mvp_status: "Implemented in MVP", future_integration_needed: "Real weighbridge API" },
+  { gap_name: "Cane intake suppression", current_loophole: "Cane may not enter official records.", system_control: "Delivery ID, supplier, vehicle, timestamp, batch linkage.", demo_scenario: "Fully Compliant Flow", mvp_status: "Implemented in MVP", future_integration_needed: "Farmer payment / ERP integration" },
+  { gap_name: "Production suppression", current_loophole: "Sugar output can be underreported.", system_control: "Expected vs actual recovery variance.", demo_scenario: "Critical Recovery Variance", mvp_status: "Implemented in MVP", future_integration_needed: "Production counter integration" },
+  { gap_name: "Serial skipping", current_loophole: "Serials can be skipped for off-book bags.", system_control: "Sequential serial gap detection.", demo_scenario: "Serial Gap Detected", mvp_status: "Implemented in MVP", future_integration_needed: "FBR UIM integration" },
+  { gap_name: "Duplicate serial use", current_loophole: "Copied serials can legitimize fake stock.", system_control: "Unique serial constraint.", demo_scenario: "Duplicate Serial Used", mvp_status: "Implemented in MVP", future_integration_needed: "Packaging scanner integration" },
+  { gap_name: "Packaging-to-warehouse leakage", current_loophole: "Activated bags can disappear before warehouse.", system_control: "24-hour warehouse SLA alert.", demo_scenario: "Activated Serials Not Warehoused", mvp_status: "Implemented in MVP", future_integration_needed: "Line + warehouse scanners" },
+  { gap_name: "Dispatch without invoice", current_loophole: "Off-book sale can leave the gate.", system_control: "Invoice validation and exception.", demo_scenario: "Dispatch Without Invoice", mvp_status: "Implemented in MVP", future_integration_needed: "E-invoice integration" },
+  { gap_name: "Fake buyer receipt", current_loophole: "Wrong buyer can close a dispatch.", system_control: "Buyer and serial matching.", demo_scenario: "Wrong Buyer Receipt", mvp_status: "Implemented in MVP", future_integration_needed: "Buyer mobile app" },
+  { gap_name: "Weak audit trail", current_loophole: "Logs can be edited silently.", system_control: "Hash-chain audit log.", demo_scenario: "Fully Compliant Flow", mvp_status: "Implemented in MVP", future_integration_needed: "Ledger anchoring" },
+];
+
+export const traceFallback: BatchTrace = {
+  batch_id: "BATCH-2026-A01",
+  summary: "Seeded trace timeline for stakeholder preview.",
+  steps: [
+    { stage: "Cane Intake Records", status: "Linked", actor: "Mill Operator", evidence: "2 intake records linked", related_exceptions: [], audit_hash: "demo-hash-001" },
+    { stage: "Production Batch", status: "WARNING", actor: "Mill Operator", evidence: "Expected vs actual output calculated", related_exceptions: ["Production recovery variance warning"], audit_hash: "demo-hash-002" },
+    { stage: "Generated Serials", status: "70 serials", actor: "Mill Operator", evidence: "Sequential serials issued", related_exceptions: [], audit_hash: "demo-hash-003" },
+    { stage: "Warehouse Receipt", status: "70 bags", actor: "Warehouse Manager", evidence: "WH-A / WH-B receipts", related_exceptions: [], audit_hash: "demo-hash-004" },
+    { stage: "Dispatch", status: "3 dispatches", actor: "Warehouse Manager", evidence: "Invoice and vehicle evidence", related_exceptions: ["Dispatch without invoice"], audit_hash: "demo-hash-005" },
+    { stage: "Buyer Receipt", status: "1 receipt", actor: "Buyer / Warehouse", evidence: "Shortage captured", related_exceptions: ["Buyer receipt shortage"], audit_hash: "demo-hash-006" },
+  ],
+};
