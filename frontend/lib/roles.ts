@@ -61,36 +61,6 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   {
-    href: "/scope",
-    label: "Scope & Solution Map",
-    icon: Map,
-    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
-  },
-  {
-    href: "/scenario-lab",
-    label: "Scenario Lab",
-    icon: TestTube2,
-    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
-  },
-  {
-    href: "/flow",
-    label: "End-to-End Flow",
-    icon: GitBranch,
-    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
-  },
-  {
-    href: "/formulas",
-    label: "Rules & Formulas",
-    icon: Calculator,
-    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
-  },
-  {
-    href: "/trace-batch",
-    label: "Trace One Batch",
-    icon: GitBranch,
-    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
-  },
-  {
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
@@ -143,6 +113,36 @@ export const navItems: NavItem[] = [
     label: "Audit Logs",
     icon: ScrollText,
     roles: ["mill_owner", "fbr_officer", "auditor"],
+  },
+  {
+    href: "/trace-batch",
+    label: "Trace One Batch",
+    icon: GitBranch,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
+    href: "/flow",
+    label: "End-to-End Flow",
+    icon: GitBranch,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
+    href: "/formulas",
+    label: "Rules & Formulas",
+    icon: Calculator,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
+    href: "/scenario-lab",
+    label: "Scenario Lab",
+    icon: TestTube2,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
+    href: "/scope",
+    label: "Scope & Solution Map",
+    icon: Map,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
   },
   {
     href: "/roles",

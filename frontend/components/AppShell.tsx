@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen overflow-x-hidden bg-ink-50">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-ink-100 bg-white px-4 py-5 lg:flex">
         <Link href="/dashboard" className="flex shrink-0 items-center gap-3 rounded-lg px-2 py-2">
           <span className="grid h-10 w-10 place-items-center rounded-lg bg-ink-900 text-white">
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="lg:pl-72">
+      <div className="min-w-0 lg:pl-72">
         <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/90 backdrop-blur">
           <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3 lg:hidden">
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
