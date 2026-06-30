@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     postgres_url_non_pooling: str | None = None
     frontend_url: str = "http://localhost:3000"
     seed_demo_data: bool = True
+    repair_demo_schema_on_startup: bool = True
     default_expected_recovery_percentage: float = 10.5
     activated_warehouse_limit_hours: int = 24
     dispatch_receipt_limit_hours: int = 48

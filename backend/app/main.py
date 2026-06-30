@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.db.database import Base, SessionLocal, engine
+from app.db.database import Base, SessionLocal, engine, repair_demo_schema_if_needed
 from app.db.seed import seed_database
 from app.domain import DomainError
 from app.security import PUBLIC_PATHS, decode_demo_token, permission_for_request, role_has_permission
@@ -17,6 +17,7 @@ from app.security import PUBLIC_PATHS, decode_demo_token, permission_for_request
 async def lifespan(app: FastAPI):
     app.state.startup_error = None
     try:
+        app.state.schema_repaired = repair_demo_schema_if_needed()
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:

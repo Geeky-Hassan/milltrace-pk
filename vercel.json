@@ -13,21 +13,24 @@
   },
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
+      "source": "/api/v1/:path*",
       "destination": {
-        "service": "backend"
+        "service": "backend",
+        "path": "/api/v1/:path*"
       }
     },
     {
       "source": "/api/v1",
       "destination": {
-        "service": "backend"
+        "service": "backend",
+        "path": "/api/v1"
       }
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "destination": {
-        "service": "frontend"
+        "service": "frontend",
+        "path": "/:path*"
       }
     }
   ]
