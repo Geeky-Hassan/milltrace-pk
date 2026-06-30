@@ -1,13 +1,31 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+DEFAULT_DATABASE_URL = "postgresql+psycopg://milltrace:milltrace@localhost:5432/milltrace_pk"
+
+
+def normalize_database_url_value(value: str) -> str:
+    normalized = str(value).strip()
+    if normalized.startswith("postgres://"):
+        normalized = normalized.replace("postgres://", "postgresql+psycopg://", 1)
+    elif normalized.startswith("postgresql://"):
+        normalized = normalized.replace("postgresql://", "postgresql+psycopg://", 1)
+    if "neon.tech" in normalized and "sslmode=" not in normalized:
+        separator = "&" if "?" in normalized else "?"
+        normalized = f"{normalized}{separator}sslmode=require"
+    return normalized
 
 
 class Settings(BaseSettings):
     app_name: str = "MillTrace PK"
     api_v1_prefix: str = "/api/v1"
-    database_url: str = "postgresql+psycopg://milltrace:milltrace@localhost:5432/milltrace_pk"
+    database_url: str = DEFAULT_DATABASE_URL
+    postgres_url: str | None = None
+    postgres_prisma_url: str | None = None
+    postgres_url_non_pooling: str | None = None
     frontend_url: str = "http://localhost:3000"
     seed_demo_data: bool = True
     default_expected_recovery_percentage: float = 10.5
@@ -24,15 +42,15 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
-        normalized = str(value)
-        if normalized.startswith("postgres://"):
-            normalized = normalized.replace("postgres://", "postgresql+psycopg://", 1)
-        elif normalized.startswith("postgresql://"):
-            normalized = normalized.replace("postgresql://", "postgresql+psycopg://", 1)
-        if "neon.tech" in normalized and "sslmode=" not in normalized:
-            separator = "&" if "?" in normalized else "?"
-            normalized = f"{normalized}{separator}sslmode=require"
-        return normalized
+        return normalize_database_url_value(value)
+
+    @model_validator(mode="after")
+    def prefer_vercel_neon_url(self) -> "Settings":
+        if self.database_url == DEFAULT_DATABASE_URL:
+            candidate = self.postgres_url or self.postgres_prisma_url or self.postgres_url_non_pooling
+            if candidate:
+                object.__setattr__(self, "database_url", normalize_database_url_value(candidate))
+        return self
 
     @property
     def cors_origins(self) -> list[str]:

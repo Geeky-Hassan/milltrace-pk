@@ -15,12 +15,16 @@ from app.security import PUBLIC_PATHS, decode_demo_token, permission_for_request
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    app.state.startup_error = None
     try:
-        seed_database(db)
-    finally:
-        db.close()
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            seed_database(db)
+        finally:
+            db.close()
+    except Exception as error:  # pragma: no cover - protects serverless startup diagnostics
+        app.state.startup_error = str(error)
     yield
 
 
@@ -80,6 +84,16 @@ async def domain_exception_handler(request: Request, exc: DomainError):
     return api_error("DOMAIN_RULE_VIOLATION", str(exc), exc.status_code)
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return api_error(
+        "SERVER_ERROR",
+        "Backend service error. Check database connection settings and Vercel function logs.",
+        500,
+        [str(exc)],
+    )
+
+
 def api_error(code: str, message: str, status_code: int, details=None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
@@ -89,4 +103,12 @@ def api_error(code: str, message: str, status_code: int, details=None) -> JSONRe
 
 @app.get("/")
 def read_root():
-    return {"service": "MillTrace PK API", "status": "online"}
+    startup_error = getattr(app.state, "startup_error", None)
+    if startup_error:
+        return {
+            "service": "MillTrace PK API",
+            "status": "degraded",
+            "database": "unavailable",
+            "detail": startup_error,
+        }
+    return {"service": "MillTrace PK API", "status": "online", "database": "connected"}
