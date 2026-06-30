@@ -45,7 +45,7 @@ class SerialService:
             )
 
         serials: list[PackagingSerial] = []
-        for offset in range(payload.quantity):
+        for offset in range(quantity):
             sequence = start_sequence + offset
             serial_number = self._format_serial(batch.mill.code, batch.batch_id, sequence)
             if self.repo.exists(serial_number):

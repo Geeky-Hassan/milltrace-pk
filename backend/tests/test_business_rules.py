@@ -120,6 +120,42 @@ def test_serial_generation_gap_and_lifecycle_validation(db_session):
     )
 
 
+def test_serial_generation_derives_quantity_from_batch_output(db_session):
+    intake = CaneIntakeService(db_session).create(
+        CaneIntakeCreate(
+            farmer_supplier_name="Auto Bag Grower",
+            vehicle_number="BAG-101",
+            cane_ticket_id="BAG-TKT-101",
+            gross_weight_kg=40000,
+            tare_weight_kg=10000,
+            collection_point="CP-Test",
+            operator_name="Bilal Ahmed",
+            operator_user_id=2,
+        )
+    )
+    batch = ProductionService(db_session).create(
+        ProductionBatchCreate(
+            shift="Auto Bags",
+            cane_intake_ids=[intake.id],
+            actual_sugar_output_kg=3150,
+            actor_user_id=2,
+        )
+    )
+
+    serials = SerialService(db_session).generate(
+        SerialGenerateRequest(
+            batch_id=batch.batch_id,
+            packaging_line="Line Auto",
+            actor_user_id=2,
+        )
+    )
+
+    assert len(serials) == 63
+    assert all(serial.bag_weight_kg == 50 for serial in serials)
+    assert serials[0].sequence_number == 1
+    assert serials[-1].sequence_number == 63
+
+
 def test_warehouse_requires_activated_serials(db_session):
     warehoused = db_session.query(PackagingSerial).filter(PackagingSerial.status == SerialStatus.WAREHOUSED.value).first()
 
