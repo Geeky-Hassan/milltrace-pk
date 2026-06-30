@@ -14,9 +14,9 @@ import { useDemoRole } from "@/lib/use-demo-role";
 import type { DemoScenario, DemoScenarioRun, GapMapItem } from "@/types";
 
 const storyCards = [
-  { title: "Clean Batch", scenario: "best-compliant-flow", description: "Everything matched. No exception. Low risk.", batch: "BATCH-2026-A01" },
-  { title: "Suspicious Batch", scenario: "serial-gap-detected", description: "Recovery variance and serial gap detected. Needs review.", batch: "BATCH-2026-N01" },
-  { title: "Fraud Chain", scenario: "complete-fraud-chain", description: "Multiple red flags across production, packaging, dispatch, and receipt.", batch: "BATCH-2026-N01" },
+  { title: "Clean Batch", scenario: "best-compliant-flow", description: "Everything matched. No exception. Low risk.", batch: "PB-MBR-MRN-26A01" },
+  { title: "Suspicious Batch", scenario: "serial-gap-detected", description: "Recovery variance and serial gap detected. Needs review.", batch: "PB-MBR-NGT-26C14" },
+  { title: "Fraud Chain", scenario: "complete-fraud-chain", description: "Multiple red flags across production, packaging, dispatch, and receipt.", batch: "PB-MBR-NGT-26C14" },
 ];
 
 function difficultyTone(value: string) {

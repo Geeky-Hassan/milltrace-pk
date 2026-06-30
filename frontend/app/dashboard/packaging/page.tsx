@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PackageCheck, Plus, ShieldAlert, Zap } from "lucide-react";
+import { PackageCheck, Plus, QrCode, ShieldAlert, Zap } from "lucide-react";
 import { Badge } from "@/components/Badge";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
@@ -11,7 +11,7 @@ import { StatePanel } from "@/components/StatePanel";
 import { TableFilters } from "@/components/TableFilters";
 import { Toast, type ToastState } from "@/components/Toast";
 import { generatePackagingSerials, getPackagingSerials, getProductionBatches, transitionSerial } from "@/lib/api";
-import { formatDateTime, formatKg } from "@/lib/format";
+import { bagsFromKg, formatDateTime, formatKg, formatTonsFromKg } from "@/lib/format";
 import { canVoidSerial } from "@/lib/roles";
 import { matchesSearch, matchesValue, uniqueOptions } from "@/lib/table";
 import { useDemoRole } from "@/lib/use-demo-role";
@@ -31,7 +31,7 @@ export default function PackagingPage() {
   const [rows, setRows] = useState<PackagingSerial[]>([]);
   const [batches, setBatches] = useState<ProductionBatch[]>([]);
   const [selectedSerial, setSelectedSerial] = useState<string>("");
-  const [generateForm, setGenerateForm] = useState({ batch_id: "", quantity: "5", bag_weight_kg: "50", packaging_line: "Line Demo" });
+  const [generateForm, setGenerateForm] = useState({ batch_id: "", packaging_line: "Line A" });
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -69,6 +69,16 @@ export default function PackagingPage() {
     () => rows.filter((row) => matchesSearch(row, search) && matchesValue(row.status, status)),
     [rows, search, status],
   );
+  const selectedBatch = useMemo(
+    () => batches.find((batch) => batch.batch_id === generateForm.batch_id),
+    [batches, generateForm.batch_id],
+  );
+  const issuedForBatch = useMemo(
+    () => rows.filter((row) => row.batch_id === generateForm.batch_id).length,
+    [rows, generateForm.batch_id],
+  );
+  const totalBagsForBatch = selectedBatch ? bagsFromKg(selectedBatch.actual_sugar_output_kg) : 0;
+  const remainingBags = Math.max(totalBagsForBatch - issuedForBatch, 0);
 
   async function handleVoid(reason: string) {
     if (!selected) {
@@ -97,8 +107,6 @@ export default function PackagingPage() {
       setBusy(true);
       const created = await generatePackagingSerials({
         batch_id: generateForm.batch_id,
-        quantity: Number(generateForm.quantity),
-        bag_weight_kg: Number(generateForm.bag_weight_kg),
         packaging_line: generateForm.packaging_line,
         sku: "SUGAR_50KG",
       });
@@ -161,17 +169,19 @@ export default function PackagingPage() {
               </select>
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
-              Quantity
-              <input min="1" required type="number" value={generateForm.quantity} onChange={(event) => setGenerateForm({ ...generateForm, quantity: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
-            </label>
-            <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
-              Bag weight
-              <input min="1" required type="number" value={generateForm.bag_weight_kg} onChange={(event) => setGenerateForm({ ...generateForm, bag_weight_kg: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
-            </label>
-            <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
               Packaging line
               <input required value={generateForm.packaging_line} onChange={(event) => setGenerateForm({ ...generateForm, packaging_line: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
             </label>
+            <div className="rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-sm">
+              <p className="font-bold text-ink-900">50 kg bag rule</p>
+              <p className="mt-1 text-ink-500">
+                {selectedBatch ? `${formatTonsFromKg(selectedBatch.actual_sugar_output_kg)} output = ${totalBagsForBatch.toLocaleString()} bags` : "Select a batch"}
+              </p>
+            </div>
+            <div className="rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm">
+              <p className="font-bold text-compliance-green">{remainingBags.toLocaleString()} bags to issue</p>
+              <p className="mt-1 text-emerald-700">Already issued: {issuedForBatch.toLocaleString()}</p>
+            </div>
           </div>
         </form>
       ) : null}
@@ -206,6 +216,20 @@ export default function PackagingPage() {
               <div className="flex justify-between gap-3">
                 <span className="text-ink-500">Current status</span>
                 <Badge>{selected.status}</Badge>
+              </div>
+              <div className="mt-2 rounded-lg border border-ink-100 bg-white p-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase text-ink-500">
+                  <QrCode aria-hidden="true" className="h-3.5 w-3.5" />
+                  Bag QR print preview
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <DemoQr value={selected.serial_number} />
+                  <div className="min-w-0 text-xs leading-5 text-ink-500">
+                    <p className="font-bold text-ink-900">Print payload</p>
+                    <p className="break-all font-mono">{selected.serial_number}</p>
+                    <p>Only issued serials should be printed on 50 kg bags.</p>
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
@@ -268,5 +292,30 @@ export default function PackagingPage() {
       />
       <Toast toast={toast} />
     </>
+  );
+}
+
+function DemoQr({ value }: { value: string }) {
+  const bits = useMemo(() => {
+    let seedBase = 0;
+    for (const char of value) {
+      seedBase = (seedBase * 31 + char.charCodeAt(0)) >>> 0;
+    }
+    return Array.from({ length: 121 }, (_, index) => {
+      const finder =
+        (index < 33 && index % 11 < 3) ||
+        (index > 87 && index % 11 < 3) ||
+        (index < 33 && index % 11 > 7);
+      const cellHash = (seedBase + index * 2654435761 + (index % 11) * 1013904223) >>> 0;
+      return finder || cellHash % 5 < 2;
+    });
+  }, [value]);
+
+  return (
+    <div className="grid h-28 w-28 shrink-0 grid-cols-11 gap-0.5 rounded-md border border-ink-200 bg-white p-2">
+      {bits.map((filled, index) => (
+        <span key={index} className={filled ? "rounded-[1px] bg-ink-900" : "rounded-[1px] bg-white"} />
+      ))}
+    </div>
   );
 }

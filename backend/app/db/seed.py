@@ -129,8 +129,16 @@ def ensure_demo_reference_data(db: Session) -> tuple[Mill, dict[str, User], list
     return mill, users, suppliers
 
 
-def load_demo_seed_data(db: Session) -> bool:
+def load_demo_seed_data(db: Session, replace_existing: bool = False) -> bool:
     mill, users, suppliers = ensure_demo_reference_data(db)
+    if _has_operational_data(db):
+        if replace_existing:
+            clear_demo_operational_data(db)
+        else:
+            db.commit()
+            return False
+    if replace_existing:
+        mill, users, suppliers = ensure_demo_reference_data(db)
     if _has_operational_data(db):
         db.commit()
         return False
@@ -166,7 +174,7 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
 
     cane_intakes = [
         CaneIntake(
-            delivery_id="CI-2026-0001",
+            delivery_id="CI-MBR-26A-GT1847",
             cane_ticket_id="TKT-KS-0001",
             mill=mill,
             farmer_supplier=suppliers[0],
@@ -181,7 +189,7 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
             status="ACCEPTED",
         ),
         CaneIntake(
-            delivery_id="CI-2026-0002",
+            delivery_id="CI-MBR-26B-GT7721",
             cane_ticket_id="TKT-SD-0002",
             mill=mill,
             farmer_supplier=suppliers[1],
@@ -196,7 +204,7 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
             status="ACCEPTED",
         ),
         CaneIntake(
-            delivery_id="CI-2026-0003",
+            delivery_id="CI-MBR-26C-GT2094",
             cane_ticket_id="TKT-LQ-0003",
             mill=mill,
             farmer_supplier=suppliers[2],
@@ -218,7 +226,7 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
 
     batches = [
         ProductionBatch(
-            batch_id="BATCH-2026-A01",
+            batch_id="PB-MBR-MRN-26A01",
             mill=mill,
             shift="Morning",
             cane_input_weight_kg=41750,
@@ -232,7 +240,7 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
             downtime_explanation="Short diffuser stoppage for pump inspection.",
         ),
         ProductionBatch(
-            batch_id="BATCH-2026-N01",
+            batch_id="PB-MBR-NGT-26C14",
             mill=mill,
             shift="Night",
             cane_input_weight_kg=18400,
@@ -323,13 +331,13 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
     dispatch_3_numbers = [serial.serial_number for serial in serials[60:65]]
     dispatches = [
         Dispatch(
-            dispatch_id="DSP-2026-0001",
+            dispatch_id="DS-MBR-LHR-26D4412",
             mill_id=mill.id,
             buyer="Lahore Wholesale Foods",
             buyer_order_id="LHR-DC-01",
             vehicle_number="LES-4412",
             driver_name="Imran Shah",
-            invoice_number="INV-2026-9081",
+            invoice_number="MTINV-LHR-26-9081",
             serial_range=serial_range(dispatch_1_numbers),
             serial_numbers=to_csv(dispatch_1_numbers),
             quantity=len(dispatch_1_numbers),
@@ -337,13 +345,13 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
             dispatched_at=now - timedelta(minutes=45),
         ),
         Dispatch(
-            dispatch_id="DSP-2026-0002",
+            dispatch_id="DS-MBR-KHI-26D9014",
             mill_id=mill.id,
             buyer="Karachi Trading Co.",
             buyer_order_id="KHI-WH-07",
             vehicle_number="KHI-9014",
             driver_name="Rashid Ali",
-            invoice_number="INV-2026-9082",
+            invoice_number="MTINV-KHI-26-9082",
             serial_range=serial_range(dispatch_2_numbers),
             serial_numbers=to_csv(dispatch_2_numbers),
             quantity=len(dispatch_2_numbers),
@@ -351,13 +359,13 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
             dispatched_at=now - timedelta(days=1),
         ),
         Dispatch(
-            dispatch_id="DSP-2026-0003",
+            dispatch_id="DS-MBR-LHR-26D7750",
             mill_id=mill.id,
             buyer="Lahore Wholesale Foods",
             buyer_order_id="LHR-DC-02",
             vehicle_number="LES-7750",
             driver_name="Naveed Iqbal",
-            invoice_number="INV-2026-9083",
+            invoice_number="MTINV-LHR-26-9083",
             serial_range=serial_range(dispatch_3_numbers),
             serial_numbers=to_csv(dispatch_3_numbers),
             quantity=len(dispatch_3_numbers) + 1,
@@ -391,29 +399,29 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
 
     db.add_all(
         [
-            _exception(ExceptionType.RECOVERY_VARIANCE_WARNING, "ProductionBatch", "BATCH-2026-A01", "Actual output is 3.05% below expected recovery threshold.", "MEDIUM", now - timedelta(hours=2)),
-            _exception(ExceptionType.RECOVERY_VARIANCE_CRITICAL, "ProductionBatch", "BATCH-2026-N01", "Actual output is 13.04% below expected recovery threshold.", "CRITICAL", now - timedelta(hours=1, minutes=20)),
-            _exception(ExceptionType.SERIAL_GAP, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 6), "Night batch activation skipped several issued serials.", "HIGH", now - timedelta(hours=1)),
-            _exception(ExceptionType.SERIAL_OUT_OF_ORDER, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 8), "Serial activation occurred while lower sequences remained ISSUED.", "MEDIUM", now - timedelta(minutes=58)),
-            _exception(ExceptionType.ACTIVATED_NOT_WAREHOUSED, "PackagingSerial", _serial(date_token, "BATCH-2026-N01", 10), "Activated serial has not been warehoused after 24 hours.", "HIGH", now - timedelta(minutes=54)),
-            _exception(ExceptionType.DISPATCH_WITHOUT_INVOICE, "Dispatch", "DSP-2026-0003", "A dispatch attempt without invoice evidence was blocked before release.", "CRITICAL", now - timedelta(minutes=50)),
-            _exception(ExceptionType.DISPATCH_QUANTITY_MISMATCH, "Dispatch", "DSP-2026-0003", "Dispatch quantity is one bag higher than scanned serial count.", "HIGH", now - timedelta(minutes=45)),
-            _exception(ExceptionType.RECEIPT_SHORTAGE, "Dispatch", "DSP-2026-0002", "Buyer receipt is missing one dispatched serial.", "HIGH", now - timedelta(minutes=40)),
-            _exception(ExceptionType.RECEIPT_MISSING, "Dispatch", "DSP-2026-0001", "Buyer acknowledgement has not been received for pending dispatch.", "LOW", now - timedelta(minutes=35)),
-            _exception(ExceptionType.MANUAL_OVERRIDE, "CaneIntake", "CI-2026-0003", "Manual tare override was entered after weighbridge recalibration.", "HIGH", now - timedelta(minutes=25)),
+            _exception(ExceptionType.RECOVERY_VARIANCE_WARNING, "ProductionBatch", "PB-MBR-MRN-26A01", "Actual output is 3.05% below expected recovery threshold.", "MEDIUM", now - timedelta(hours=2)),
+            _exception(ExceptionType.RECOVERY_VARIANCE_CRITICAL, "ProductionBatch", "PB-MBR-NGT-26C14", "Actual output is 13.04% below expected recovery threshold.", "CRITICAL", now - timedelta(hours=1, minutes=20)),
+            _exception(ExceptionType.SERIAL_GAP, "PackagingSerial", _serial(date_token, "PB-MBR-NGT-26C14", 6), "Night batch activation skipped several issued serials.", "HIGH", now - timedelta(hours=1)),
+            _exception(ExceptionType.SERIAL_OUT_OF_ORDER, "PackagingSerial", _serial(date_token, "PB-MBR-NGT-26C14", 8), "Serial activation occurred while lower sequences remained ISSUED.", "MEDIUM", now - timedelta(minutes=58)),
+            _exception(ExceptionType.ACTIVATED_NOT_WAREHOUSED, "PackagingSerial", _serial(date_token, "PB-MBR-NGT-26C14", 10), "Activated serial has not been warehoused after 24 hours.", "HIGH", now - timedelta(minutes=54)),
+            _exception(ExceptionType.DISPATCH_WITHOUT_INVOICE, "Dispatch", "DS-MBR-LHR-26D7750", "A dispatch attempt without invoice evidence was blocked before release.", "CRITICAL", now - timedelta(minutes=50)),
+            _exception(ExceptionType.DISPATCH_QUANTITY_MISMATCH, "Dispatch", "DS-MBR-LHR-26D7750", "Dispatch quantity is one bag higher than scanned serial count.", "HIGH", now - timedelta(minutes=45)),
+            _exception(ExceptionType.RECEIPT_SHORTAGE, "Dispatch", "DS-MBR-KHI-26D9014", "Buyer receipt is missing one dispatched serial.", "HIGH", now - timedelta(minutes=40)),
+            _exception(ExceptionType.RECEIPT_MISSING, "Dispatch", "DS-MBR-LHR-26D4412", "Buyer acknowledgement has not been received for pending dispatch.", "LOW", now - timedelta(minutes=35)),
+            _exception(ExceptionType.MANUAL_OVERRIDE, "CaneIntake", "CI-MBR-26C-GT2094", "Manual tare override was entered after weighbridge recalibration.", "HIGH", now - timedelta(minutes=25)),
         ]
     )
     db.flush()
 
     audit = AuditService(db)
     audit_events = [
-        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0001", {"net_cane_weight_kg": 19750}, "Gate intake accepted with weighbridge evidence."),
-        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-2026-0002", {"net_cane_weight_kg": 22000}, "Gate intake accepted with weighbridge evidence."),
-        (operator, "MANUAL_OVERRIDE", "CaneIntake", "CI-2026-0003", {"override_reason": cane_intakes[2].override_reason}, "Manual tare override recorded."),
-        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-A01", {"variance_status": "WARNING"}, "Morning batch mass balance calculated."),
-        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "BATCH-2026-N01", {"variance_status": "CRITICAL"}, "Night batch mass balance calculated."),
-        (operator, "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-A01", {"quantity": 70}, "Morning packaging serials issued."),
-        (operator, "GENERATE_SERIALS", "ProductionBatch", "BATCH-2026-N01", {"quantity": 30}, "Night packaging serials issued."),
+        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-MBR-26A-GT1847", {"net_cane_weight_kg": 19750}, "Gate intake accepted with weighbridge evidence."),
+        (operator, "CREATE_CANE_INTAKE", "CaneIntake", "CI-MBR-26B-GT7721", {"net_cane_weight_kg": 22000}, "Gate intake accepted with weighbridge evidence."),
+        (operator, "MANUAL_OVERRIDE", "CaneIntake", "CI-MBR-26C-GT2094", {"override_reason": cane_intakes[2].override_reason}, "Manual tare override recorded."),
+        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "PB-MBR-MRN-26A01", {"variance_status": "WARNING"}, "Morning batch mass balance calculated."),
+        (operator, "CREATE_PRODUCTION_BATCH", "ProductionBatch", "PB-MBR-NGT-26C14", {"variance_status": "CRITICAL"}, "Night batch mass balance calculated."),
+        (operator, "GENERATE_SERIALS", "ProductionBatch", "PB-MBR-MRN-26A01", {"quantity": 70}, "Morning packaging serials issued."),
+        (operator, "GENERATE_SERIALS", "ProductionBatch", "PB-MBR-NGT-26C14", {"quantity": 30}, "Night packaging serials issued."),
     ]
     for serial in serials[:5]:
         audit_events.append((operator, "ACTIVATE_SERIAL", "PackagingSerial", serial.serial_number, {"status": serial.status}, "Serial activation event captured."))
@@ -423,10 +431,10 @@ def _seed_operational_data(db: Session, mill: Mill, users: dict[str, User], supp
         [
             (warehouse_user, "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[0].id), {"quantity": receipts[0].quantity}, "Warehouse receipt created."),
             (warehouse_user, "CREATE_WAREHOUSE_RECEIPT", "WarehouseReceipt", str(receipts[1].id), {"quantity": receipts[1].quantity}, "Warehouse receipt created."),
-            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DSP-2026-0001", {"quantity": 10}, "Dispatch released."),
-            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DSP-2026-0002", {"quantity": 10}, "Dispatch released."),
-            (warehouse_user, "BLOCK_DISPATCH", "Dispatch", "DSP-2026-0003", {"reason": "missing invoice"}, "Dispatch attempt without invoice was blocked and held for review."),
-            (warehouse_user, "CREATE_BUYER_RECEIPT", "BuyerReceipt", "DSP-2026-0002", {"received_quantity": 9}, "Buyer receipt shortage captured."),
+            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DS-MBR-LHR-26D4412", {"quantity": 10}, "Dispatch released."),
+            (warehouse_user, "CREATE_DISPATCH", "Dispatch", "DS-MBR-KHI-26D9014", {"quantity": 10}, "Dispatch released."),
+            (warehouse_user, "BLOCK_DISPATCH", "Dispatch", "DS-MBR-LHR-26D7750", {"reason": "missing invoice"}, "Dispatch attempt without invoice was blocked and held for review."),
+            (warehouse_user, "CREATE_BUYER_RECEIPT", "BuyerReceipt", "DS-MBR-KHI-26D9014", {"received_quantity": 9}, "Buyer receipt shortage captured."),
             (fbr, "EXCEPTION_IN_REVIEW", "ExceptionAlert", "DISPATCH_WITHOUT_INVOICE", {"status": "IN_REVIEW"}, "FBR officer opened review."),
             (auditor, "REVIEW_NOTE", "ExceptionAlert", "RECEIPT_SHORTAGE", {"note": "Receipt evidence requested."}, "Auditor added review note."),
             (owner, "VOID_SERIAL", "PackagingSerial", serials[-1].serial_number, {"reason": serials[-1].void_reason}, "Owner approved voided serial."),

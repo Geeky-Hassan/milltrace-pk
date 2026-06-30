@@ -4,7 +4,7 @@ MillTrace PK is a role-based MVP for sugar mill traceability, anti-diversion, an
 
 It demonstrates one complete sugar flow:
 
-Login as a role -> create cane intake -> create production batch -> generate and activate serials -> receive stock into warehouse -> dispatch with invoice -> confirm buyer receipt -> review exceptions -> inspect audit logs.
+Login as a role -> create cane intake in tons -> create production batch -> auto-issue 50 kg bag serials -> activate serials -> receive stock into warehouse -> dispatch with demo invoice -> confirm buyer receipt -> review exceptions -> inspect audit logs.
 
 ## Problem Being Solved
 
@@ -29,23 +29,25 @@ Implemented:
 - dashboard with risk score and compliance intelligence
 - cane intake validation
 - production mass balance and recovery variance
-- serial generation and lifecycle
+- serial generation from production output and lifecycle
 - warehouse receipt tracking
-- dispatch validation with invoice requirement
+- dispatch validation with demo invoice generation
 - buyer receipt matching
 - exceptions and audit logs
 - seed data load/clear controls
 - Scope & Solution Map
 - End-to-End Flow
+- Rules & Formulas
 - Scenario Lab
 - Trace One Batch
 - Roles & Responsibilities
 
 ## Simulated In MVP
 
-- Weighbridge data is manually entered or seeded.
+- Weighbridge data is manually entered or seeded in tons.
 - FBR tax stamp/UIM data uses internal serial numbers.
 - Blockchain is simulated through the audit hash chain.
+- Invoices are demo-generated; production use should integrate a digital invoicing platform.
 - Buyer receipt is simulated through dashboard actions.
 - Production counters use batch output values.
 - GPS/e-bilty and live FBR integrations are not connected yet.
@@ -149,8 +151,8 @@ curl -X POST http://localhost:8000/api/v1/demo/reset -H "Authorization: Bearer <
 
 Dashboard buttons:
 
-- **Load Seed Data** adds the demo dataset without duplicating it.
-- **Clear Demo Data** removes operational demo records only.
+- **Load Seed Data** refreshes the full stakeholder demo dataset without duplicating records.
+- **Clear Demo Data** removes all operational records across workflow pages.
 - Roles, demo users, mill settings, and suppliers remain after clear.
 
 ## Role Definitions
@@ -169,6 +171,7 @@ See `/roles` for the visual role page.
 - `/` login
 - `/dashboard` metrics, risk, and seed controls
 - `/flow` end-to-end process map
+- `/formulas` thresholds, formulas, and compliance rules
 - `/scope` scope and solution map
 - `/scenario-lab` best-to-worst test cases
 - `/trace-batch` batch lifecycle timeline
@@ -230,11 +233,19 @@ npm run build
 2. Open `/flow` to explain the full chain.
 3. Open Dashboard and use **Load Seed Data**.
 4. Open Scenario Lab and run **Fully Compliant Flow**.
-5. Open Trace One Batch for `BATCH-2026-A01`.
+5. Open Trace One Batch for `PB-MBR-MRN-26A01`.
 6. Run **Serial Gap Detected** and **Dispatch Without Invoice**.
 7. Login as FBR Officer and mark an exception `IN_REVIEW`.
 8. Login as Auditor and resolve or dismiss an exception with reason.
 9. Use **Clear Demo Data** and manually create the clean flow.
+
+Manual flow notes:
+
+- Cane intake form accepts gross and tare in tons, then stores kg for calculations.
+- Production output is entered in tons and converted to kg for recovery formulas.
+- Packaging uses fixed 50 kg bags and calculates issued serial count from actual sugar output.
+- Dispatch auto-generates a demo invoice; future pilots should connect to digital invoicing.
+- Packaging page shows a demo QR print preview for issued bag serials.
 
 See [Final Demo Flow](docs/FINAL_DEMO_FLOW.md), [MVP Demo Script](docs/MVP_DEMO_SCRIPT.md), [Scope And Assumptions](docs/SCOPE_AND_ASSUMPTIONS.md), and [Scenario Testing Guide](docs/SCENARIO_TESTING_GUIDE.md).
 

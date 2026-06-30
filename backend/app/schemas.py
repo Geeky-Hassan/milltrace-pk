@@ -208,8 +208,9 @@ class PackagingSerialCreate(PackagingSerialBase):
 
 class SerialGenerateRequest(BaseModel):
     batch_id: str
-    quantity: int = Field(gt=0)
-    bag_weight_kg: float = Field(gt=0)
+    quantity: int | None = Field(default=None, gt=0)
+    total_sugar_weight_kg: float | None = Field(default=None, gt=0)
+    bag_weight_kg: float = Field(default=50, gt=0)
     packaging_line: str
     sku: str = "SUGAR_50KG"
     start_sequence: int | None = Field(default=None, gt=0)

@@ -25,8 +25,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-ink-100 bg-white px-4 py-5 lg:block">
-        <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-2 py-2">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-ink-100 bg-white px-4 py-5 lg:flex">
+        <Link href="/dashboard" className="flex shrink-0 items-center gap-3 rounded-lg px-2 py-2">
           <span className="grid h-10 w-10 place-items-center rounded-lg bg-ink-900 text-white">
             <ShieldCheck aria-hidden="true" className="h-5 w-5" />
           </span>
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        <div className="mt-6 rounded-lg border border-ink-100 bg-ink-50 p-3">
+        <div className="mt-6 shrink-0 rounded-lg border border-ink-100 bg-ink-50 p-3">
           <div className="flex items-center gap-3">
             <span className="grid h-9 w-9 place-items-center rounded-md bg-white text-compliance-green ring-1 ring-ink-100">
               <RoleIcon aria-hidden="true" className="h-4 w-4" />
@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="mt-3 text-xs leading-5 text-ink-500">{roleDescriptions[role]}</p>
         </div>
 
-        <nav className="mt-6 space-y-1">
+        <nav className="mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
           {visibleNav.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;

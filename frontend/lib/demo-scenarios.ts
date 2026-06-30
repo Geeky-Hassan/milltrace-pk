@@ -31,7 +31,7 @@ export const gapMap: GapMapItem[] = [
 ];
 
 export const traceFallback: BatchTrace = {
-  batch_id: "BATCH-2026-A01",
+  batch_id: "PB-MBR-MRN-26A01",
   summary: "Seeded trace timeline for stakeholder preview.",
   steps: [
     { stage: "Cane Intake Records", status: "Linked", actor: "Mill Operator", evidence: "2 intake records linked", related_exceptions: [], audit_hash: "demo-hash-001" },

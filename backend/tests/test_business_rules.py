@@ -93,7 +93,7 @@ def test_production_batch_links_intakes_and_creates_variance_exception(db_sessio
 def test_serial_generation_gap_and_lifecycle_validation(db_session):
     serials = SerialService(db_session).generate(
         SerialGenerateRequest(
-            batch_id="BATCH-2026-N01",
+            batch_id="PB-MBR-NGT-26C14",
             quantity=2,
             start_sequence=40,
             bag_weight_kg=50,
@@ -156,30 +156,29 @@ def test_dispatch_updates_serials_and_flags_quantity_mismatch(db_session):
     )
 
     db_session.refresh(serial)
-    assert dispatch.dispatch_id.startswith("DSP-")
+    assert dispatch.dispatch_id.startswith("DS-")
     assert serial.status == SerialStatus.DISPATCHED.value
     assert db_session.query(ExceptionAlert).filter(ExceptionAlert.type == ExceptionType.DISPATCH_QUANTITY_MISMATCH.value).first()
 
 
-def test_dispatch_without_invoice_is_blocked_and_flagged(db_session):
+def test_dispatch_without_invoice_auto_generates_demo_invoice(db_session):
     serial = db_session.query(PackagingSerial).filter(PackagingSerial.status == SerialStatus.WAREHOUSED.value).first()
 
-    with pytest.raises(DomainError, match="requires an invoice"):
-        DispatchService(db_session).create(
-            DispatchCreate(
-                buyer="No Invoice Buyer",
-                vehicle_number="NOINV-100",
-                driver_name="Test Driver",
-                invoice_number=None,
-                serial_numbers=[serial.serial_number],
-                quantity=1,
-                actor_user_id=3,
-            )
+    dispatch = DispatchService(db_session).create(
+        DispatchCreate(
+            buyer="No Invoice Buyer",
+            vehicle_number="NOINV-100",
+            driver_name="Test Driver",
+            invoice_number=None,
+            serial_numbers=[serial.serial_number],
+            quantity=1,
+            actor_user_id=3,
         )
+    )
 
     db_session.refresh(serial)
-    assert serial.status == SerialStatus.WAREHOUSED.value
-    assert db_session.query(ExceptionAlert).filter(ExceptionAlert.type == ExceptionType.DISPATCH_WITHOUT_INVOICE.value).first()
+    assert serial.status == SerialStatus.DISPATCHED.value
+    assert dispatch.invoice_number.startswith("MTINV-MBR-")
 
 
 def test_buyer_receipt_detects_shortage_and_updates_matched_serials(db_session):

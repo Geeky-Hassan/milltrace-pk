@@ -100,7 +100,7 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-base font-bold text-ink-900">Demo Data Controls</h2>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-500">
-                Load a complete seeded demo or clear operational records to manually run the flow from cane intake to receipt.
+                Load a complete seeded demo or clear all operational records to manually run the flow from cane intake to receipt.
               </p>
             </div>
           </div>
@@ -292,7 +292,7 @@ export default function DashboardPage() {
         description={
           demoAction === "clear"
             ? "This will clear demo operational data only. Roles and system settings will remain."
-            : "This loads the stakeholder demo dataset. Existing seed data will not be duplicated."
+            : "This refreshes the stakeholder demo dataset across all workflow pages without creating duplicate records."
         }
         confirmLabel={demoAction === "clear" ? "Clear Demo Data" : "Load Seed Data"}
         reasonLabel={demoAction === "clear" ? "Confirmation reason" : "Note"}

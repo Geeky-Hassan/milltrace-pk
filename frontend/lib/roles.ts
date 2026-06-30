@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   Boxes,
   Building2,
+  Calculator,
   ClipboardCheck,
   Factory,
   FileWarning,
@@ -75,6 +76,12 @@ export const navItems: NavItem[] = [
     href: "/flow",
     label: "End-to-End Flow",
     icon: GitBranch,
+    roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
+  },
+  {
+    href: "/formulas",
+    label: "Rules & Formulas",
+    icon: Calculator,
     roles: ["mill_owner", "mill_operator", "warehouse_manager", "fbr_officer", "government_admin", "auditor"],
   },
   {

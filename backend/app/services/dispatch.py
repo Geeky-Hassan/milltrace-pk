@@ -43,17 +43,7 @@ class DispatchService:
             self.db.commit()
             raise DomainError(f"Dispatch includes invalid serials: {', '.join(missing + invalid)}.")
 
-        if not payload.invoice_number:
-            self.exceptions.create(
-                exception_type=ExceptionType.DISPATCH_WITHOUT_INVOICE,
-                related_entity_type="Dispatch",
-                related_entity_id=payload.vehicle_number,
-                description="Dispatch was blocked because invoice evidence is missing.",
-                actor_user_id=payload.actor_user_id,
-                allow_duplicate=True,
-            )
-            self.db.commit()
-            raise DomainError("Dispatch requires an invoice number before stock can leave warehouse.")
+        invoice_number = payload.invoice_number or self.repo.next_invoice_number()
 
         if payload.quantity != len(payload.serial_numbers):
             self.exceptions.create(
@@ -72,7 +62,7 @@ class DispatchService:
             buyer_order_id=payload.buyer_order_id,
             vehicle_number=payload.vehicle_number,
             driver_name=payload.driver_name,
-            invoice_number=payload.invoice_number or None,
+            invoice_number=invoice_number,
             serial_range=serial_range(payload.serial_numbers),
             serial_numbers=to_csv(payload.serial_numbers),
             quantity=payload.quantity,
@@ -103,10 +93,14 @@ class DispatchService:
             new_value={
                 "buyer": dispatch.buyer,
                 "invoice_number": dispatch.invoice_number,
+                "invoice_source": "auto-generated demo invoice" if not payload.invoice_number else "provided",
                 "quantity": dispatch.quantity,
                 "serial_numbers": payload.serial_numbers,
             },
-            detail="Dispatch created with warehouse serial validation.",
+            detail=(
+                "Dispatch created with warehouse serial validation. Demo invoices are generated automatically; "
+                "future production deployments can integrate a digital invoicing platform."
+            ),
         )
         self.db.commit()
         self.db.refresh(dispatch)

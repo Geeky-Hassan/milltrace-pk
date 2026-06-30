@@ -21,11 +21,20 @@ class SerialService:
         batch = self.batches.get_by_batch_id(payload.batch_id)
         if not batch:
             raise DomainError("Production batch not found", status_code=404)
-        if payload.quantity <= 0:
-            raise DomainError("Serial generation quantity must be positive.")
+        bag_weight = 50.0
+        total_sugar_weight = payload.total_sugar_weight_kg or batch.actual_sugar_output_kg
+        total_bags_for_batch = int(total_sugar_weight // bag_weight)
+        if total_bags_for_batch <= 0:
+            raise DomainError("Production output is too low to issue 50 kg bag serials.")
 
         max_sequence = self.repo.max_sequence_for_batch(batch.id)
         start_sequence = payload.start_sequence or max_sequence + 1
+        if payload.quantity is None:
+            quantity = total_bags_for_batch - start_sequence + 1
+        else:
+            quantity = payload.quantity
+        if quantity <= 0:
+            raise DomainError("All 50 kg bag serials for this production batch have already been issued.")
         if start_sequence > max_sequence + 1:
             self.exceptions.create(
                 exception_type=ExceptionType.SERIAL_GAP,
@@ -54,7 +63,7 @@ class SerialService:
                 PackagingSerial(
                     serial_number=serial_number,
                     production_batch=batch,
-                    bag_weight_kg=payload.bag_weight_kg,
+                    bag_weight_kg=bag_weight,
                     sku=payload.sku,
                     packaging_line=payload.packaging_line,
                     sequence_number=sequence,
@@ -70,8 +79,13 @@ class SerialService:
             action="GENERATE_SERIALS",
             entity_type="ProductionBatch",
             entity_id=batch.batch_id,
-            new_value={"quantity": payload.quantity, "serials": [item.serial_number for item in serials]},
-            detail="Packaging serials issued.",
+            new_value={
+                "quantity": quantity,
+                "bag_weight_kg": bag_weight,
+                "total_sugar_weight_kg": total_sugar_weight,
+                "serials": [item.serial_number for item in serials],
+            },
+            detail="Packaging serials issued from production output using 50 kg bag units.",
         )
         self.db.commit()
         for serial in serials:

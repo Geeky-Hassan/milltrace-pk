@@ -100,7 +100,7 @@ export function createCaneIntake(payload: Omit<CaneIntake, "id" | "delivery_id" 
   const fallback: CaneIntake = {
     ...payload,
     id: Date.now(),
-    delivery_id: "CI-2026-DEMO",
+    delivery_id: "CI-MBR-DEMO-GT0745",
     net_cane_weight_kg: payload.gross_weight_kg - payload.tare_weight_kg,
     mill_gate_timestamp: new Date().toISOString(),
   };
@@ -130,7 +130,7 @@ export function createProductionBatch(payload: {
   const fallback: ProductionBatch = {
     ...payload,
     id: Date.now(),
-    batch_id: "BATCH-2026-DEMO",
+    batch_id: "PB-MBR-DEMO-B0131",
     cane_input_weight_kg: caneInput,
     expected_sugar_output_kg: expectedOutput,
     expected_recovery_percentage: 10.5,
@@ -152,8 +152,9 @@ export function getPackagingSerials() {
 
 export function generatePackagingSerials(payload: {
   batch_id: string;
-  quantity: number;
-  bag_weight_kg: number;
+  quantity?: number;
+  total_sugar_weight_kg?: number;
+  bag_weight_kg?: number;
   packaging_line: string;
   sku?: string;
   start_sequence?: number | null;
@@ -181,7 +182,7 @@ export function createWarehouseReceipt(payload: {
     id: Date.now(),
     serial_numbers: payload.serial_numbers,
     serial_range: payload.serial_numbers.length > 0 ? `${payload.serial_numbers[0]} - ${payload.serial_numbers[payload.serial_numbers.length - 1]}` : "Manual receipt",
-    batch_id: "BATCH-2026-DEMO",
+    batch_id: "PB-MBR-DEMO-B0131",
     quantity: payload.quantity ?? payload.serial_numbers.length,
     total_weight_kg: payload.total_weight_kg ?? payload.serial_numbers.length * 50,
     warehouse_location: payload.warehouse_location,
@@ -212,8 +213,8 @@ export function createDispatchRecord(payload: {
   const fallback: DispatchRecord = {
     ...payload,
     id: Date.now(),
-    dispatch_id: "DSP-2026-DEMO",
-    invoice_number: payload.invoice_number ?? null,
+    dispatch_id: "DS-MBR-DEMO-D0423",
+    invoice_number: payload.invoice_number ?? "MTINV-DEMO-AUTO",
     serial_range: payload.serial_numbers.length > 0 ? `${payload.serial_numbers[0]} - ${payload.serial_numbers[payload.serial_numbers.length - 1]}` : "Manual dispatch",
     dispatch_status: "IN_TRANSIT",
     dispatched_at: new Date().toISOString(),
@@ -265,8 +266,8 @@ export function getAuditLogs() {
   const fallback: AuditLog[] = [
     { id: 4, action: "REVIEW", entity: "ExceptionAlert", entity_id: "Duplicate serial", detail: "Auditor opened duplicate serial evidence packet.", created_at: "2026-06-29T14:10:00Z", actor_name: "Omar Siddiqui" },
     { id: 3, action: "UPDATE", entity: "WarehouseReceipt", entity_id: "WH-C / Hold", detail: "Manual block placed on suspect serial range.", created_at: "2026-06-29T13:55:00Z", actor_name: "Sara Malik" },
-    { id: 2, action: "CREATE", entity: "ProductionBatch", entity_id: "BATCH-2026-A02", detail: "Evening shift production batch posted.", created_at: "2026-06-29T12:30:00Z", actor_name: "Bilal Ahmed" },
-    { id: 1, action: "CREATE", entity: "CaneIntake", entity_id: "CI-2026-0001", detail: "Gate intake accepted with weighbridge evidence.", created_at: "2026-06-29T10:38:00Z", actor_name: "Bilal Ahmed" },
+    { id: 2, action: "CREATE", entity: "ProductionBatch", entity_id: "PB-MBR-MRN-26A01", detail: "Evening shift production batch posted.", created_at: "2026-06-29T12:30:00Z", actor_name: "Bilal Ahmed" },
+    { id: 1, action: "CREATE", entity: "CaneIntake", entity_id: "CI-MBR-26A-GT1847", detail: "Gate intake accepted with weighbridge evidence.", created_at: "2026-06-29T10:38:00Z", actor_name: "Bilal Ahmed" },
   ];
   return request<AuditLog[]>("/audit-logs", fallback);
 }

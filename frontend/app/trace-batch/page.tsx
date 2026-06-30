@@ -26,7 +26,7 @@ export default function TraceBatchPage() {
     getProductionBatches()
       .then((data) => {
         setBatches(data);
-        setSelectedBatch((current) => current || requestedBatch || data[0]?.batch_id || "BATCH-2026-A01");
+        setSelectedBatch((current) => current || requestedBatch || data[0]?.batch_id || "PB-MBR-MRN-26A01");
       })
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "Batches could not load."))
       .finally(() => setLoading(false));

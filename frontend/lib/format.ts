@@ -3,7 +3,15 @@ export function formatKg(value: number) {
 }
 
 export function formatTonsFromKg(value: number) {
-  return `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} tons`;
+  return `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} tons`;
+}
+
+export function kgFromTons(value: string | number) {
+  return Number(value) * 1000;
+}
+
+export function bagsFromKg(value: number) {
+  return Math.floor(value / 50);
 }
 
 export function formatDateTime(value: string) {
@@ -14,4 +22,3 @@ export function formatDateTime(value: string) {
     minute: "2-digit",
   }).format(new Date(value));
 }
-

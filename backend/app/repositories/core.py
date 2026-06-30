@@ -70,7 +70,8 @@ class SupplierRepository(BaseRepository):
 
 class CaneIntakeRepository(BaseRepository):
     def next_delivery_id(self) -> str:
-        return f"CI-{utcnow().year}-{self.db.query(CaneIntake).count() + 1:04d}"
+        sequence = 731 + (self.db.query(CaneIntake).count() + 1) * 7
+        return f"CI-MBR-{utcnow():%y%m%d}-GT{sequence:04d}"
 
     def create(self, item: CaneIntake) -> CaneIntake:
         self.db.add(item)
@@ -112,7 +113,8 @@ class CaneIntakeRepository(BaseRepository):
 
 class ProductionBatchRepository(BaseRepository):
     def next_batch_id(self) -> str:
-        return f"BATCH-{utcnow().year}-{self.db.query(ProductionBatch).count() + 1:04d}"
+        sequence = 120 + (self.db.query(ProductionBatch).count() + 1) * 11
+        return f"PB-MBR-{utcnow():%y%m%d}-B{sequence:04d}"
 
     def create(self, item: ProductionBatch) -> ProductionBatch:
         self.db.add(item)
@@ -232,7 +234,12 @@ class WarehouseRepository(BaseRepository):
 
 class DispatchRepository(BaseRepository):
     def next_dispatch_id(self) -> str:
-        return f"DSP-{utcnow().year}-{self.db.query(Dispatch).count() + 1:04d}"
+        sequence = 410 + (self.db.query(Dispatch).count() + 1) * 13
+        return f"DS-MBR-{utcnow():%y%m%d}-D{sequence:04d}"
+
+    def next_invoice_number(self) -> str:
+        sequence = 9000 + (self.db.query(Dispatch).count() + 1) * 17
+        return f"MTINV-MBR-{utcnow():%y%m%d}-{sequence:04d}"
 
     def create(self, item: Dispatch) -> Dispatch:
         self.db.add(item)

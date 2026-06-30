@@ -210,8 +210,8 @@ def reset_demo_data(db: Session = Depends(get_db)):
 
 @api_router.post("/demo/seed", response_model=DemoResetResponse)
 def load_seed_demo_data(db: Session = Depends(get_db)):
-    created = load_demo_seed_data(db)
-    message = "Seed data loaded for the stakeholder demo." if created else "Seed data already exists; no duplicate records were created."
+    created = load_demo_seed_data(db, replace_existing=True)
+    message = "Seed data loaded and operational demo records refreshed." if created else "Seed data already exists; no duplicate records were created."
     return DemoResetResponse(status="OK", message=message)
 
 
@@ -220,7 +220,7 @@ def clear_seed_demo_data(db: Session = Depends(get_db)):
     deleted_count = clear_demo_operational_data(db)
     return DemoResetResponse(
         status="OK",
-        message=f"Cleared {deleted_count} demo operational records. Roles, users, mill settings, and suppliers remain.",
+        message=f"Cleared {deleted_count} operational records across all roles and workflow pages. Roles, users, mill settings, and suppliers remain.",
     )
 
 

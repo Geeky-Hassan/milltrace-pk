@@ -9,7 +9,7 @@ import { StatePanel } from "@/components/StatePanel";
 import { TableFilters } from "@/components/TableFilters";
 import { Toast, type ToastState } from "@/components/Toast";
 import { createProductionBatch, getCaneIntakes, getProductionBatches } from "@/lib/api";
-import { formatKg } from "@/lib/format";
+import { formatTonsFromKg, kgFromTons } from "@/lib/format";
 import { canCreateProduction } from "@/lib/roles";
 import { matchesSearch, matchesValue, uniqueOptions } from "@/lib/table";
 import { useDemoRole } from "@/lib/use-demo-role";
@@ -18,16 +18,16 @@ import type { CaneIntake, ProductionBatch } from "@/types";
 const initialForm = {
   shift: "Morning",
   cane_intake_ids: "",
-  actual_sugar_output_kg: "",
+  actual_sugar_output_tons: "",
   downtime_explanation: "",
 };
 
 const columns: DataTableColumn<ProductionBatch>[] = [
   { key: "batch_id", header: "Batch ID", cell: (row) => <span className="font-bold text-ink-900">{row.batch_id}</span> },
   { key: "shift", header: "Shift", cell: (row) => row.shift },
-  { key: "cane", header: "Cane Input", cell: (row) => formatKg(row.cane_input_weight_kg) },
-  { key: "expected", header: "Expected Output", cell: (row) => formatKg(row.expected_sugar_output_kg) },
-  { key: "actual", header: "Actual Output", cell: (row) => <span className="font-bold text-ink-900">{formatKg(row.actual_sugar_output_kg)}</span> },
+  { key: "cane", header: "Cane Input", cell: (row) => formatTonsFromKg(row.cane_input_weight_kg) },
+  { key: "expected", header: "Expected Output", cell: (row) => formatTonsFromKg(row.expected_sugar_output_kg) },
+  { key: "actual", header: "Actual Output", cell: (row) => <span className="font-bold text-ink-900">{formatTonsFromKg(row.actual_sugar_output_kg)}</span> },
   { key: "recovery", header: "Recovery", cell: (row) => `${row.recovery_percentage}%` },
   { key: "variance", header: "Variance Status", cell: (row) => <Badge>{row.variance_status}</Badge> },
 ];
@@ -90,7 +90,7 @@ export default function ProductionPage() {
       const created = await createProductionBatch({
         shift: form.shift,
         cane_intake_ids: caneIds,
-        actual_sugar_output_kg: Number(form.actual_sugar_output_kg),
+        actual_sugar_output_kg: kgFromTons(form.actual_sugar_output_tons),
         downtime_explanation: form.downtime_explanation || null,
       });
       setRows((current) => [created, ...current]);
@@ -136,8 +136,8 @@ export default function ProductionPage() {
               <input required placeholder="1, 2" value={form.cane_intake_ids} onChange={(event) => setForm({ ...form, cane_intake_ids: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-ink-700">
-              Actual sugar output
-              <input required min="1" type="number" value={form.actual_sugar_output_kg} onChange={(event) => setForm({ ...form, actual_sugar_output_kg: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
+              Actual sugar output (tons)
+              <input required min="0.01" step="0.01" type="number" value={form.actual_sugar_output_tons} onChange={(event) => setForm({ ...form, actual_sugar_output_tons: event.target.value })} className="h-10 rounded-md border border-ink-200 px-3 outline-none focus:border-compliance-green focus:ring-2 focus:ring-emerald-100" />
             </label>
             <label className="grid gap-1.5 text-sm font-semibold text-ink-700 xl:col-span-1">
               Downtime explanation
@@ -159,7 +159,7 @@ export default function ProductionPage() {
                       onClick={() => toggleIntake(intake.id)}
                       className={`rounded-md border px-3 py-2 text-xs font-bold transition ${selected ? "border-emerald-300 bg-emerald-50 text-compliance-green" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"}`}
                     >
-                      {intake.id} - {intake.delivery_id} ({formatKg(intake.net_cane_weight_kg)})
+                      {intake.id} - {intake.delivery_id} ({formatTonsFromKg(intake.net_cane_weight_kg)})
                     </button>
                   );
                 })

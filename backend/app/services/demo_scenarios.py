@@ -284,21 +284,28 @@ class DemoScenarioService:
 
     def _run_dispatch_without_invoice(self, role: str) -> str:
         serials = self._fresh_warehoused_serials(2)
-        try:
-            DispatchService(self.db).create(
-                DispatchCreate(
-                    buyer="No Invoice Buyer",
-                    vehicle_number=self._unique("NOINV"),
-                    driver_name="No Invoice Driver",
-                    invoice_number=None,
-                    serial_numbers=serials,
-                    quantity=len(serials),
-                    actor_user_id=self._user_id("warehouse_manager"),
-                )
-            )
-        except DomainError:
-            pass
-        return "Dispatch was blocked because invoice evidence was missing."
+        vehicle_number = self._unique("NOINV")
+        self.exceptions.create(
+            exception_type=ExceptionType.DISPATCH_WITHOUT_INVOICE,
+            related_entity_type="Dispatch",
+            related_entity_id=vehicle_number,
+            description=(
+                "Demo bypass attempt: stock was prepared for dispatch while invoice generation was deliberately skipped. "
+                "Normal dispatch now auto-generates a demo invoice before release."
+            ),
+            actor_user_id=self._user_id("warehouse_manager"),
+            allow_duplicate=True,
+        )
+        self.audit.log(
+            actor_user_id=self._user_id("warehouse_manager"),
+            action="BLOCK_DISPATCH_WITHOUT_INVOICE",
+            entity_type="Dispatch",
+            entity_id=vehicle_number,
+            new_value={"serial_numbers": serials, "invoice_status": "missing"},
+            detail="Dispatch bypass attempt without invoice evidence was blocked before release.",
+        )
+        self.db.commit()
+        return "A dispatch bypass attempt without invoice evidence was blocked and flagged."
 
     def _run_wrong_buyer_receipt(self, role: str) -> str:
         dispatch, serials = self._fresh_dispatch("Buyer A Foods", 2)
