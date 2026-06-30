@@ -260,6 +260,7 @@ export type TraceStep = {
   timestamp?: string | null;
   actor: string;
   evidence: string;
+  reason?: string | null;
   related_exceptions: string[];
   audit_hash?: string | null;
 };

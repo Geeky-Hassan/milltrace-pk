@@ -496,6 +496,15 @@ def list_dispatches(
     return [dispatch_read(row) for row in rows]
 
 
+@api_router.get("/dispatches/demo-invoice")
+def preview_demo_invoice(db: Session = Depends(get_db)):
+    return {
+        "invoice_number": DispatchRepository(db).next_invoice_number(),
+        "source": "demo",
+        "note": "Demo invoice number generated inside MillTrace PK. Future production deployments can replace this with a digital invoicing platform.",
+    }
+
+
 @api_router.get("/dispatches/{item_id}", response_model=DispatchRead)
 def get_dispatch(item_id: int, db: Session = Depends(get_db)):
     item = DispatchRepository(db).get(item_id)

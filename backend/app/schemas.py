@@ -455,6 +455,7 @@ class TraceStep(BaseModel):
     timestamp: datetime | None = None
     actor: str
     evidence: str
+    reason: str | None = None
     related_exceptions: list[str]
     audit_hash: str | None = None
 

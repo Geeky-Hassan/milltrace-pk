@@ -11,7 +11,7 @@ import { StatePanel } from "@/components/StatePanel";
 import { TableFilters } from "@/components/TableFilters";
 import { Toast, type ToastState } from "@/components/Toast";
 import { generatePackagingSerials, getPackagingSerials, getProductionBatches, transitionSerial } from "@/lib/api";
-import { bagsFromKg, formatDateTime, formatKg, formatTonsFromKg } from "@/lib/format";
+import { bagsFromKg, formatBagWeight, formatBags, formatDateTime, formatTonsFromKg } from "@/lib/format";
 import { canVoidSerial } from "@/lib/roles";
 import { matchesSearch, matchesValue, uniqueOptions } from "@/lib/table";
 import { useDemoRole } from "@/lib/use-demo-role";
@@ -20,7 +20,7 @@ import type { PackagingSerial, ProductionBatch } from "@/types";
 const columns: DataTableColumn<PackagingSerial>[] = [
   { key: "serial", header: "Serial Number", cell: (row) => <span className="font-bold text-ink-900">{row.serial_number}</span> },
   { key: "batch", header: "Batch ID", cell: (row) => row.batch_id },
-  { key: "weight", header: "Bag Weight", cell: (row) => formatKg(row.bag_weight_kg) },
+  { key: "weight", header: "Bag Weight", cell: (row) => formatBagWeight(row.bag_weight_kg) },
   { key: "line", header: "Packaging Line", cell: (row) => row.packaging_line },
   { key: "status", header: "Status", cell: (row) => <Badge>{row.status}</Badge> },
   { key: "timestamp", header: "Timestamp", cell: (row) => formatDateTime(row.timestamp) },
@@ -112,7 +112,7 @@ export default function PackagingPage() {
       });
       setRows((current) => [...created, ...current]);
       setSelectedSerial(created[0]?.serial_number ?? selectedSerial);
-      setToast({ tone: "success", message: `${created.length} serials issued for ${generateForm.batch_id}.` });
+      setToast({ tone: "success", message: `${formatBags(created.length)} issued for ${generateForm.batch_id}.` });
     } catch (requestError) {
       setToast({ tone: "error", message: requestError instanceof Error ? requestError.message : "Serial generation was rejected." });
     } finally {
@@ -147,10 +147,13 @@ export default function PackagingPage() {
       {role === "mill_operator" ? (
         <form onSubmit={handleGenerate} className="mb-6 rounded-lg border border-ink-100 bg-white p-5 shadow-soft">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-ink-900">Generate Serials</h2>
+            <div>
+              <h2 className="text-base font-bold text-ink-900">Generate Serials</h2>
+              <p className="mt-1 text-sm text-ink-500">The system calculates bag count from actual production output.</p>
+            </div>
             <button
               type="submit"
-              disabled={busy || !generateForm.batch_id}
+              disabled={busy || !generateForm.batch_id || remainingBags <= 0}
               className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-900 px-4 text-sm font-bold text-white transition hover:bg-compliance-green disabled:bg-ink-300"
             >
               <Plus aria-hidden="true" className="h-4 w-4" />
@@ -175,12 +178,12 @@ export default function PackagingPage() {
             <div className="rounded-md border border-ink-100 bg-ink-50 px-3 py-2 text-sm">
               <p className="font-bold text-ink-900">50 kg bag rule</p>
               <p className="mt-1 text-ink-500">
-                {selectedBatch ? `${formatTonsFromKg(selectedBatch.actual_sugar_output_kg)} output = ${totalBagsForBatch.toLocaleString()} bags` : "Select a batch"}
+                {selectedBatch ? `${formatTonsFromKg(selectedBatch.actual_sugar_output_kg)} output = ${formatBags(totalBagsForBatch)}` : "Select a batch"}
               </p>
             </div>
             <div className="rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm">
-              <p className="font-bold text-compliance-green">{remainingBags.toLocaleString()} bags to issue</p>
-              <p className="mt-1 text-emerald-700">Already issued: {issuedForBatch.toLocaleString()}</p>
+              <p className="font-bold text-compliance-green">{formatBags(remainingBags)} to issue</p>
+              <p className="mt-1 text-emerald-700">Already issued: {formatBags(issuedForBatch)}</p>
             </div>
           </div>
         </form>

@@ -51,7 +51,7 @@ class DashboardService:
             DashboardMetric(label="Total cane received today", value=f"{total_cane_today / 1000:.1f} tons", delta="Validated weighbridge net", tone="success"),
             DashboardMetric(label="Estimated sugar output", value=f"{expected_output / 1000:.1f} tons", delta=f"Expected recovery {mill.expected_recovery_percentage:.1f}%", tone="neutral"),
             DashboardMetric(label="Actual packaged sugar", value=f"{actual_output / 1000:.1f} tons", delta=f"{len(serial_rows):,} issued serials", tone="success"),
-            DashboardMetric(label="Recovery variance", value=f"{recovery_variance:+,.0f} kg", delta=f"Recovery {recovery_percentage:.2f}%", tone="warning" if recovery_variance < 0 else "success"),
+            DashboardMetric(label="Recovery variance", value=f"{recovery_variance / 1000:+,.2f} tons", delta=f"Recovery {recovery_percentage:.2f}%", tone="warning" if recovery_variance < 0 else "success"),
             DashboardMetric(label="Active serials", value=f"{len([row for row in serial_rows if row.status != SerialStatus.VOIDED.value]):,}", delta="Lifecycle-controlled serials", tone="neutral"),
             DashboardMetric(label="Warehouse stock", value=f"{warehouse_stock / 1000:.1f} tons", delta="By batch, SKU, location", tone="success"),
             DashboardMetric(label="Dispatches pending receipt", value=str(pending_receipts), delta="48h receipt SLA", tone="warning" if pending_receipts else "success"),

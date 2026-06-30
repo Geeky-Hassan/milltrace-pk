@@ -26,7 +26,7 @@ export const dashboardSummary: DashboardSummary = {
     { label: "Total cane received today", value: "60.2 tons", delta: "+8.4% vs yesterday", tone: "success" },
     { label: "Estimated sugar output", value: "18.9 tons", delta: "Based on recovery model", tone: "neutral" },
     { label: "Actual packaged sugar", value: "17.8 tons", delta: "14.5 tons serialized", tone: "success" },
-    { label: "Recovery variance", value: "-1,145 kg", delta: "1 critical batch", tone: "warning" },
+    { label: "Recovery variance", value: "-1.15 tons", delta: "1 critical batch", tone: "warning" },
     { label: "Active serials", value: "4", delta: "1 voided serial held", tone: "neutral" },
     { label: "Warehouse stock", value: "14.5 tons", delta: "3 active bays", tone: "success" },
     { label: "Dispatches today", value: "2", delta: "1 awaiting buyer receipt", tone: "neutral" },

@@ -226,6 +226,16 @@ export function createDispatchRecord(payload: {
   });
 }
 
+export function getDemoInvoiceNumber() {
+  return request<{ invoice_number: string; source: string; note: string }>("/dispatches/demo-invoice", {
+    invoice_number: `MTINV-DEMO-${Date.now().toString().slice(-6)}`,
+    source: "demo",
+    note: "Demo invoice generated locally because the API was unavailable.",
+  }, {
+    fallbackOnError: false,
+  });
+}
+
 export function getBuyerReceipts() {
   return request<BuyerReceipt[]>("/buyer-receipts", buyerReceipts);
 }

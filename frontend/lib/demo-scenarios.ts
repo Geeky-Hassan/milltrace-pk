@@ -32,13 +32,13 @@ export const gapMap: GapMapItem[] = [
 
 export const traceFallback: BatchTrace = {
   batch_id: "PB-MBR-MRN-26A01",
-  summary: "Seeded trace timeline for stakeholder preview.",
+  summary: "41.75 tons cane, 4.25 tons sugar, 85 issued serials, 0 related exception(s).",
   steps: [
-    { stage: "Cane Intake Records", status: "Linked", actor: "Mill Operator", evidence: "2 intake records linked", related_exceptions: [], audit_hash: "demo-hash-001" },
-    { stage: "Production Batch", status: "WARNING", actor: "Mill Operator", evidence: "Expected vs actual output calculated", related_exceptions: ["Production recovery variance warning"], audit_hash: "demo-hash-002" },
-    { stage: "Generated Serials", status: "70 serials", actor: "Mill Operator", evidence: "Sequential serials issued", related_exceptions: [], audit_hash: "demo-hash-003" },
-    { stage: "Warehouse Receipt", status: "70 bags", actor: "Warehouse Manager", evidence: "WH-A / WH-B receipts", related_exceptions: [], audit_hash: "demo-hash-004" },
-    { stage: "Dispatch", status: "3 dispatches", actor: "Warehouse Manager", evidence: "Invoice and vehicle evidence", related_exceptions: ["Dispatch without invoice"], audit_hash: "demo-hash-005" },
-    { stage: "Buyer Receipt", status: "1 receipt", actor: "Buyer / Warehouse", evidence: "Shortage captured", related_exceptions: ["Buyer receipt shortage"], audit_hash: "demo-hash-006" },
+    { stage: "Cane Intake Records", status: "Linked", actor: "Mill Operator", evidence: "2 intakes, 41.75 tons net cane from CI-MBR-26A-GT1847 and CI-MBR-26B-GT7721.", reason: "Gross must be greater than tare, and accepted intakes must link to production.", related_exceptions: [], audit_hash: "demo-hash-001" },
+    { stage: "Production Batch", status: "Normal", actor: "Mill Operator", evidence: "4.25 tons actual sugar vs 4.38 tons expected; recovery 10.18%.", reason: "Variance remains within the normal tolerance band.", related_exceptions: [], audit_hash: "demo-hash-002" },
+    { stage: "Generated Serials", status: "85 issued", actor: "Mill Operator", evidence: "85 issued of 85 expected 50 kg bag serials.", reason: "Bag count is derived from actual output / 50 kg.", related_exceptions: [], audit_hash: "demo-hash-003" },
+    { stage: "Warehouse Receipt", status: "70 bags", actor: "Warehouse Manager", evidence: "70 bags / 3.50 tons received into WH-A and WH-B.", reason: "Only activated serials can enter warehouse custody.", related_exceptions: [], audit_hash: "demo-hash-004" },
+    { stage: "Dispatch", status: "2 dispatches", actor: "Warehouse Manager", evidence: "Invoices MTINV-LHR-26-9081 and MTINV-KHI-26-9082 released against warehoused serials.", reason: "Dispatch quantity must equal scanned serials.", related_exceptions: [], audit_hash: "demo-hash-005" },
+    { stage: "Buyer Receipt", status: "9 bags received", actor: "Buyer / Warehouse", evidence: "One receipt recorded a one-bag shortage.", reason: "Buyer receipt must match dispatch serial list and buyer.", related_exceptions: ["Buyer receipt shortage"], audit_hash: "demo-hash-006" },
   ],
 };

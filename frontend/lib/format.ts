@@ -6,6 +6,14 @@ export function formatTonsFromKg(value: number) {
   return `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} tons`;
 }
 
+export function formatBags(value: number) {
+  return `${value.toLocaleString()} ${value === 1 ? "bag" : "bags"}`;
+}
+
+export function formatBagWeight(value: number) {
+  return `${value.toLocaleString()} kg bag`;
+}
+
 export function kgFromTons(value: string | number) {
   return Number(value) * 1000;
 }

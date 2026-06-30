@@ -75,3 +75,11 @@ def test_scenario_result_is_persisted_for_lab(db_session):
     assert latest is not None
     assert latest.id == result.id
     assert db_session.query(DemoScenarioRun).filter(DemoScenarioRun.scenario_id == "dispatch-without-invoice").count() == 1
+
+
+def test_batch_trace_returns_stakeholder_evidence_and_reasons(db_session):
+    trace = DemoScenarioService(db_session).trace_batch("PB-MBR-MRN-26A01")
+
+    assert "tons cane" in trace.summary
+    assert any("50 kg bag" in step.reason for step in trace.steps if step.reason)
+    assert all(step.evidence for step in trace.steps)
