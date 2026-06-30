@@ -15,22 +15,19 @@
     {
       "source": "/api/v1/:path*",
       "destination": {
-        "service": "backend",
-        "path": "/api/v1/:path*"
+        "service": "backend"
       }
     },
     {
       "source": "/api/v1",
       "destination": {
-        "service": "backend",
-        "path": "/api/v1"
+        "service": "backend"
       }
     },
     {
       "source": "/:path*",
       "destination": {
-        "service": "frontend",
-        "path": "/:path*"
+        "service": "frontend"
       }
     }
   ]
