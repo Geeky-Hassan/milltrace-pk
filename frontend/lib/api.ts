@@ -56,7 +56,7 @@ function apiBaseUrl() {
     return configured.replace(/\/$/, "");
   }
   if (typeof window !== "undefined" && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
-    return `${window.location.origin}/_/backend/api/v1`;
+    return `${window.location.origin}/api/v1`;
   }
   return "http://localhost:8000/api/v1";
 }

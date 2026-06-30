@@ -13,13 +13,13 @@
   },
   "rewrites": [
     {
-      "source": "/_/backend/(.*)",
+      "source": "/api/v1/(.*)",
       "destination": {
         "service": "backend"
       }
     },
     {
-      "source": "/_/backend",
+      "source": "/api/v1",
       "destination": {
         "service": "backend"
       }

@@ -46,17 +46,8 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
-def strip_backend_prefix(request: Request) -> None:
-    prefix = "/_/backend"
-    path = request.scope.get("path", "")
-    if path == prefix or path.startswith(f"{prefix}/"):
-        request.scope["root_path"] = prefix
-        request.scope["path"] = path.removeprefix(prefix) or "/"
-
-
 @app.middleware("http")
 async def demo_auth_middleware(request: Request, call_next):
-    strip_backend_prefix(request)
     path = request.scope.get("path", "/").rstrip("/") or "/"
     if path in PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc"):
         return await call_next(request)

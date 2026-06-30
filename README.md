@@ -118,7 +118,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 For Vercel Services, use:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://<your-domain>/_/backend/api/v1
+NEXT_PUBLIC_API_URL=https://<your-domain>/api/v1
 FRONTEND_URL=https://<your-domain>
 ```
 
